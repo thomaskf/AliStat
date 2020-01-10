@@ -139,6 +139,8 @@ public:
 	
 	int makeHeatMap; // 0 : No; 1 : Triangular heat map;
 				     // 2 : Rectangular heat map; 3: Both
+				     
+	bool briefOutput; // true if option -b is used
     
     // ======================================================
     // Functions

@@ -255,6 +255,14 @@ int readArguments(int argc, char** argv, UserOptions* user_options, string* errM
                         user_options->computePDist = 1;
                     break;
 
+				case 'b':
+					if (user_options->briefOutput) {
+						duplicateOption = true;
+					} else {
+						user_options->briefOutput = true;
+					}
+					break;
+
 				case 'h':
                     return 2;
                     break;
@@ -282,7 +290,28 @@ int readArguments(int argc, char** argv, UserOptions* user_options, string* errM
             *errMsg = "Error! Partifion file has to be supplied when <data type> = 3";
             return 1;
         }
-    
+        
+        if (user_options->briefOutput) {
+        	if (user_options->prefixOut!="") {
+        		*errMsg = "Error! Options -b and -o cannot be used at the same time";
+        		return 1;
+        	} else if (user_options->outTables.size() > 0) {
+        		*errMsg = "Error! Options -b and -t cannot be used at the same time";
+        		return 1;
+        	} else if (user_options->reorder!=-1) {
+        		*errMsg = "Error! Options -b and -r cannot be used at the same time";
+        		return 1;
+        	} else if (used_option_m) {
+        		*errMsg = "Error! Options -b and -m cannot be used at the same time";
+        		return 1;
+        	} else if (user_options->makeHeatMap!=0) {
+        		*errMsg = "Error! Options -b and -i cannot be used at the same time";
+        		return 1;
+        	} else if (user_options->computePDist > 0) {
+        		*errMsg = "Error! Options -b and -d cannot be used at the same time";
+        		return 1;
+        	}
+        }
     }
     
     // set the default value if necessary
@@ -317,6 +346,7 @@ void UserOptions::reset() {
     computePDist = 0;
 	makeHeatMap = 0;
 	outputAlign = 0;
+	briefOutput = false;
 }
 
 // by default, prefixOut = <alignment file> w/o .ext

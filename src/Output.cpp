@@ -70,6 +70,10 @@ void outputUsage(char* progName) {
     cout << "                           in the partition file)" << endl;
     
     cout << "other options:" << endl;
+    cout << "  -b               : Report the brief summary of figures to the screen" << endl;
+    cout << "                     Output format:" << endl;
+    cout << "                     File,#seqs,#sites,Ca,Cr_max,Cr_min,Cc_max,Cc_min,Cij_max,Cij_min" << endl;
+    cout << "                     (this option cannot work with the options: -o,-t,-r,-m,-i,-d)" << endl;
     cout << "  -c <coding_type> : 0  - A, C, G, T [default];" << endl;
     cout << "                     1  - C, T, R (i.e. C, T, AG);" << endl;
     cout << "                     2  - A, G, Y (i.e. A, G, CT);" << endl;
@@ -135,8 +139,8 @@ void outputUsage(char* progName) {
 	/*
     cout << "  -m <criteria>    : Keep the rows and/or the columns of alignment according to" << endl;
     cout << "                     <criteria>, and output the resulting alignment in the file" << endl;
-	cout << "                     with extension '.mask.fa', and output the discarded alignment" << endl;
-    cout << "                     in the file with extension '.disc.fa'" << endl;
+	cout << "                     with extension '.mask.fst', and output the discarded alignment" << endl;
+    cout << "                     in the file with extension '.disc.fst'" << endl;
 	cout << "                     Example of <criteria>:" << endl;
 	cout << "                       \"Cr > 0.8\"            : keep the seqs with Cr > 0.8" << endl;
 	cout << "                       \"Cc >= 0.4\"           : keep the sites with Cr >= 0.4" << endl;
@@ -162,13 +166,13 @@ void outputUsage(char* progName) {
 	 */
     cout << "  -m <n5>          : Mask the alignment; 0 <= n5 <= 1" << endl;
     cout << "                     Output (1) the alignment with columns Cc >= n5 in the file" << endl;
-    cout << "                     'Mask.fa', (2) the alignment with columns Cc < n5 in the" << endl;
-    cout << "                     file 'Disc.fa', and (3) the alignment with an extra row in" << endl;
+    cout << "                     'Mask.fst', (2) the alignment with columns Cc < n5 in the" << endl;
+    cout << "                     file 'Disc.fst', and (3) the alignment with an extra row in" << endl;
     cout << "                     the first line to indicate whether the column is masked in" << endl;
-    cout << "                     the file 'Stat.fa'." << endl;
+    cout << "                     the file 'Stat.fst'." << endl;
     cout << "                     (Special case: if no <n5>, whole alignment is outputted in" << endl;
-    cout << "                      the file 'Mask.fa'; if <n5> is 0, the alignment with" << endl;
-	cout << "                      columns Cc > 0 is outputted in the file 'Mask.fa')" << endl;
+    cout << "                      the file 'Mask.fst'; if <n5> is 0, the alignment with" << endl;
+	cout << "                      columns Cc > 0 is outputted in the file 'Mask.fst')" << endl;
 	cout << "  -i <1|2|3>       : Generate heat map image for Cij scores of sequence pairs" << endl;
 	cout << "                     1 - Triangular heat map" << endl;
 	cout << "                     2 - Rectangular heat map" << endl;
@@ -190,6 +194,35 @@ string fileName(string prefixOut, string file) {
         return prefixOut + "." + file;
     else
         return file;
+}
+
+// Output the summary to the screen
+void outSumToScreen(string seqFile, int seqNum, int seqLen, double Ca, double Cr_max, double Cr_min,
+                   double Cc_max, double Cc_min, double Cij_max, double Cij_min, string partName, int showHeader) {
+
+	if (showHeader) {
+		if (partName.length() == 0)
+			cout << "File_name, #sequences, #sites, Ca, Cr_max, Cr_min, Cc_max, Cc_min, Cij_max, Cij_min" << endl;
+		else
+			cout << "File_name, Partition_name, #sequences, #sites, Ca, Cr_max, Cr_min, Cc_max, Cc_min, Cij_max, Cij_min" << endl;
+	}
+	                   
+    cout << seqFile;
+    
+    if (partName.length() > 0)
+    	cout << ", " << partName;
+
+    cout << ", " << seqNum;
+    cout << ", " << seqLen;
+    cout << ", " << (double)Ca/(seqNum*seqLen);
+    cout << ", " << (double)Cr_max/seqLen;
+    cout << ", " << (double)Cr_min/seqLen;
+    cout << ", " << (double)Cc_max/seqNum;
+    cout << ", " << (double)Cc_min/seqNum;
+    cout << ", " << (double)Cij_max/seqLen;
+    cout << ", " << (double)Cij_min/seqLen;
+    cout << endl;
+                   
 }
 
 // Output the summary to the file <prefixOut>.summary.txt
@@ -300,9 +333,9 @@ void outputSummary(string seqFile, string prefixOut, int dataType, int isCodon, 
         fout << "Rectangular heatmap for individual pairs of seqs (Cij) in ..... " << fileName(prefixOut, "Full.svg") << endl;
     
     if (userOptions->outputAlign) {
-        fout << "The masked alignment (Cc >= " << userOptions->maskThres << ") in ........................... " << fileName(prefixOut, "Mask.fa") << endl;
-        fout << "The alignment of columns with low Cc values (Cc < " << userOptions->maskThres << ") in ..... " << fileName(prefixOut, "Disc.fa") << endl;
-        fout << "The file indicating which columns are masked in ............... " << fileName(prefixOut, "Stat.fa") << endl;
+        fout << "The masked alignment (Cc >= " << userOptions->maskThres << ") in ........................... " << fileName(prefixOut, "Mask.fst") << endl;
+        fout << "The alignment of columns with low Cc values (Cc < " << userOptions->maskThres << ") in ..... " << fileName(prefixOut, "Disc.fst") << endl;
+        fout << "The file indicating which columns are masked in ............... " << fileName(prefixOut, "Stat.fst") << endl;
     }
 	
 	if (userOptions->computePDist==1) {
@@ -771,9 +804,9 @@ void outputFinishMessage(string prefixOut, int seqNum, int seqLen, UserOptions* 
         cout << "Rectangular heatmap for individual pairs of seqs (Cij) in ..... " << fileName(prefixOut, "Full.svg") << endl;
 
     if (userOptions->outputAlign) {
-        cout << "The masked alignment in ....................................... " << fileName(prefixOut, "Mask.fa") << endl;
-        cout << "The alignment of columns with low Cc values in ................ " << fileName(prefixOut, "Disc.fa") << endl;
-        cout << "The file indicating which columns are masked in ............... " << fileName(prefixOut, "Stat.fa") << endl;
+        cout << "The masked alignment in ....................................... " << fileName(prefixOut, "Mask.fst") << endl;
+        cout << "The alignment of columns with low Cc values in ................ " << fileName(prefixOut, "Disc.fst") << endl;
+        cout << "The file indicating which columns are masked in ............... " << fileName(prefixOut, "Stat.fst") << endl;
     }
     
     if (userOptions->computePDist==1) {

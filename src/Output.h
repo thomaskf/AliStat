@@ -92,13 +92,18 @@
 
 using namespace std;
 static int HEATMAP_COLOR_NUM = 11;
-static string HEATMAP_COLOR_MAP[] = {"#000000","#08306B","#08519C","#2171B5","#4292C6","#6BAED6","#9ECAE1","#C6DBEF","#DEEBF7","#F7FBFF","#FFFFFF"};
+static string HEATMAP_COLOR_MAP[] = {"#ef3b2c","#08306B","#08519C","#2171B5","#4292C6","#6BAED6","#9ECAE1","#C6DBEF","#DEEBF7","#F7FBFF","#FFFFFF"};
+// static string HEATMAP_COLOR_MAP[] = {"#000000","#08306B","#08519C","#2171B5","#4292C6","#6BAED6","#9ECAE1","#C6DBEF","#DEEBF7","#F7FBFF","#FFFFFF"};
 // static string HEATMAP_COLOR_MAP[] = {"#000000","#800026","#BD0026","#E31A1C","#FC4E2A","#FD8D3C","#FEB24C","#FED976","#FFEDA0","#FFFFCC","#FFFFFF"};
 static string HEATMAP_COLOR_DESC[] = {"= 0.0", "&lt; 0.1", "&lt; 0.2", "&lt; 0.3", "&lt; 0.4", "&lt; 0.5", "&lt; 0.6", "&lt; 0.7", "&lt; 0.8", "&lt; 0.9", "&#x2264; 1.0"};
 
 // output the usage of this program
 void outputUsage(char* progName);
 
+// Output the summary to the screen
+void outSumToScreen(string seqFile, int seqNum, int seqLen, double Ca, double Cr_max, double Cr_min,
+                   double Cc_max, double Cc_min, double Cij_max, double Cij_min, string partName, int showHeader);
+                   
 // Output the summary to the file <seqFile>.summary.txt
 void outputSummary(string seqFile, string prefixOut, int dataType, int isCodon, char* validCharArr,
                    int seqNum, int seqLen, double Ca, double Cr_max, double Cr_min, double Cc_max,

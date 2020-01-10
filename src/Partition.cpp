@@ -122,13 +122,13 @@ void Partition::setPartitionPos(PartitionPos* partPos) {
 
 
 // compute all figures
-void Partition::computeAllFigures() {
+void Partition::computeAllFigures(int showStatus) {
     computeCaCr();
     computeCc();
 	if (userOptions->computePDist == 1) {
 		computePijCij();
 	} else {
-		computeCij();
+		computeCij(showStatus);
 	}
 }
 
@@ -195,6 +195,12 @@ void Partition::outputAllFigures(string seqFile, string prefixOut) {
 }
 
 
+// output summary of figures to screen
+void Partition::outSummaryToScreen(string seqFile, string partName, int showHeader) {
+	outSumToScreen(seqFile, seqNum, partLen, Ca, Cr_max, Cr_min, Cc_max, Cc_min, Cij_max, Cij_min, partName, showHeader);
+}
+
+
 // output heat map files
 void Partition::outputHeatMap(string prefixOut) {
 	if (userOptions->makeHeatMap==1 || userOptions->makeHeatMap==3) {
@@ -224,9 +230,9 @@ void Partition::outputAlignment(string prefixOut) {
     string seqDisc;
     string seqSign;
     
-    string outMaskFile = fileName(prefixOut, "Mask.fa");
-    string outDiscFile = fileName(prefixOut, "Disc.fa");
-    string outStatFile = fileName(prefixOut, "Stat.fa");
+    string outMaskFile = fileName(prefixOut, "Mask.fst");
+    string outDiscFile = fileName(prefixOut, "Disc.fst");
+    string outStatFile = fileName(prefixOut, "Stat.fst");
     
     ofstream foutMask;
     ofstream foutDisc;
@@ -365,7 +371,7 @@ void Partition::computeCc() {
 
 
 // compute all values of Cij, Cij_max, Cij_min
-void Partition::computeCij() {
+void Partition::computeCij(int showStatus) {
     
     if (seqNum < 2)
         return;
@@ -375,23 +381,27 @@ void Partition::computeCij() {
     int i,j;
     
     // for i<j
-    cout << "| 0%                                                                      100% |" << endl << flush;
+    if (showStatus)
+    	cout << "| 0%                                                                      100% |" << endl << flush;
     int totBarLen = 80;
     int curBarLen = 0;
     int newBarLen;
     for (i=0; i<seqNum-1; i++) {
         
         // for showing status
-        newBarLen = ((i+1)*totBarLen)/(seqNum-1);
-        for (j=curBarLen; j<newBarLen; j++)
-            cout << "*" << flush;
-        curBarLen = newBarLen;
+	    if (showStatus) {
+			newBarLen = ((i+1)*totBarLen)/(seqNum-1);
+			for (j=curBarLen; j<newBarLen; j++)
+				cout << "*" << flush;
+			curBarLen = newBarLen;
+        }
         
         for (j=i+1; j<seqNum; j++) {
             Cij[i*seqNum+j] = boolArray[i].countInter(&(boolArray[j]));
         }
     }
-    cout << endl;
+    if (showStatus)
+    	cout << endl;
     
     // for i>j
     for (i=1; i<seqNum; i++)

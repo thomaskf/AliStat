@@ -78,13 +78,16 @@ public:
     void setPartitionPos(PartitionPos* partPos);
     
     // compute all figures
-    void computeAllFigures();
+    void computeAllFigures(int showStatus);
     
     // reorder the alignment
     void reorderAlignment();
     
     // output all figures
     void outputAllFigures(string seqFile, string prefixOut);
+    
+    // output summary of figures to screen
+    void outSummaryToScreen(string seqFile, string partName, int showHeader);
     
     // mask and output the alignment
     void outputAlignment(string prefixOut);
@@ -143,7 +146,7 @@ private:
     void computeCc();
     
     // compute all values of Cij, Cij_max, Cij_min
-    void computeCij();
+    void computeCij(int showStatus);
     
     // rebuild the binary sequences
     void rebuildBinaries();

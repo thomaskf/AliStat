@@ -71,6 +71,9 @@ int main(int argc, char** argv) {
 	char* recodeMatrix = NULL;
 	char* recodeNUMatrix = NULL;
 	char* recodeAAMatrix = NULL;
+	string partitionName;
+	int showHeader;
+	int showStatus;
 
     // read the arguments
     int status = readArguments(argc, argv, &user_options, &errMsg);
@@ -144,7 +147,7 @@ int main(int argc, char** argv) {
         }
         
         for (i=0; i<user_options.partitionPosList.size(); i++) {
-            string partitionName = user_options.partitionPosList[i]->name;
+            partitionName = user_options.partitionPosList[i]->name;
             
             partition->setPartitionPos(user_options.partitionPosList[i]);
             
@@ -165,34 +168,53 @@ int main(int argc, char** argv) {
 					partition->setRecodeMatrix(recodeMatrix);
 				}
 			}
-
-            cout << "Performing analysis on " << term << " " << partitionName << endl;
-            partition->computeAllFigures();
-            partition->reorderAlignment();
-            partition->outputAllFigures(user_options.alignFile, fileName(user_options.prefixOut, partitionName));
-            partition->outputAlignment(fileName(user_options.prefixOut, partitionName));
-			partition->outputHeatMap(fileName(user_options.prefixOut, partitionName));
-            // output the R script
-            outputRScript(fileName(user_options.prefixOut, partitionName), user_options, partitionName);
-            // Output the finish message
-            outputFinishMessage(fileName(user_options.prefixOut, partitionName), seqNum, user_options.partitionPosList[i]->partLen, &user_options);
+			if (user_options.briefOutput) {
+				showStatus = 0;
+				partition->computeAllFigures(showStatus);
+				if (i==0)
+					showHeader = 1;
+				else
+					showHeader = 0;
+				partition->outSummaryToScreen(user_options.alignFile, partitionName, showHeader);
+			} else {
+				showStatus = 1;
+				cout << "Performing analysis on " << term << " " << partitionName << endl;
+				partition->computeAllFigures(showStatus);
+				partition->reorderAlignment();
+				partition->outputAllFigures(user_options.alignFile, fileName(user_options.prefixOut, partitionName));
+				partition->outputAlignment(fileName(user_options.prefixOut, partitionName));
+				partition->outputHeatMap(fileName(user_options.prefixOut, partitionName));
+				// output the R script
+				outputRScript(fileName(user_options.prefixOut, partitionName), user_options, partitionName);
+				// Output the finish message
+				outputFinishMessage(fileName(user_options.prefixOut, partitionName), seqNum, user_options.partitionPosList[i]->partLen, &user_options);
+            }
         }
         
     } else {
         // No partition file is provided
         
-        if (user_options.computePDist == 1) {
-            partition->setRecodeMatrix(recodeMatrix);
+        if (user_options.briefOutput) {
+			showStatus = 0;
+        	partition->computeAllFigures(showStatus);
+        	showHeader = 1;
+        	partitionName = "";
+			partition->outSummaryToScreen(user_options.alignFile, partitionName, showHeader);
+        } else {
+			showStatus = 1;
+			if (user_options.computePDist == 1) {
+				partition->setRecodeMatrix(recodeMatrix);
+			}
+			partition->computeAllFigures(showStatus);
+			partition->reorderAlignment();
+			partition->outputAllFigures(user_options.alignFile, user_options.prefixOut);
+			partition->outputAlignment(user_options.prefixOut);
+			partition->outputHeatMap(user_options.prefixOut);
+			// output the R script
+			outputRScript(user_options.prefixOut, user_options, "");
+			// Output the finish message
+			outputFinishMessage(user_options.prefixOut, seqNum, seqLen, &user_options);
         }
-        partition->computeAllFigures();
-        partition->reorderAlignment();
-        partition->outputAllFigures(user_options.alignFile, user_options.prefixOut);
-        partition->outputAlignment(user_options.prefixOut);
-		partition->outputHeatMap(user_options.prefixOut);
-        // output the R script
-        outputRScript(user_options.prefixOut, user_options, "");
-        // Output the finish message
-        outputFinishMessage(user_options.prefixOut, seqNum, seqLen, &user_options);
     }
     
     // output the message about how to use the R scripts generated if necessary

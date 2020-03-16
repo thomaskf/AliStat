@@ -260,6 +260,21 @@ static void printSeq(string& str, ofstream *fout, int maxCols) {
     (*fout) << endl;
 }
 
+static void printSeq(string& str, ofstream *fout, int maxCols, vector<int>& pos_select, int base_unit) {
+    // print out the sequence with at most <maxCols> columns per line
+    int i = 0;
+    int j,k;
+    for (j=0; j<pos_select.size(); j++) {
+        for (k=0; k<base_unit; k++) {
+            if (i > 0 && i%maxCols==0)
+                (*fout) << endl;
+            (*fout) << str[pos_select[j]+k];
+            i++;
+        }
+    }
+    (*fout) << endl;
+}
+
 static string intToStr(int i) {
     // integer -> string
     

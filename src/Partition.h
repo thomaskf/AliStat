@@ -94,17 +94,29 @@ public:
 
 	// output heat map files
 	void outputHeatMap(string prefixOut);
-	
+
+    // build the update sequence according to the data type
+    void buildUpdateSeqs();
+
+    // set up the array
+    void setupArray();
+
+    // set dataTypeStr
+    void setDataTypeStr();
+
+    int dataType;
+
 private:
     
     // original sequences information
     vector<string>* seqNames;
     vector<string>* origSeqs;
-    int dataType;
+    vector<string>* updateSeqs;
     int seqNum;
     int seqLen;
     int partLen;
     string partName;
+    string dataTypeStr;
     
     // valid character set
     char* validCharArray;
@@ -120,9 +132,12 @@ private:
 
     // binary sequences;
     vector<BoolArray> boolArray;
-	
+    
 	// recode sequences;
 	vector<string> recodeSeqs;
+    
+    // index for position selection
+    vector<int> pos_select;
     
     // index for row and column
     int* row_index; // sorted row index according to Cr if necessary
@@ -134,7 +149,6 @@ private:
     int Ca;
     int* Cr; int Cr_max; int Cr_min;
     int* Cc; int Cc_max; int Cc_min;
-    int* Cc_part; // a set of Cc values according to the positions inside the partition
     int* Cij; int Cij_max; int Cij_min;
 	// p distances between sequences
 	int* Pij; double Pij_max; double Pij_min; double Pij_avg; bool Pij_exist;
@@ -156,7 +170,6 @@ private:
 	
 	// compute the p-distances and Cij between sequences
 	void computePijCij();
-    
 };
 
 

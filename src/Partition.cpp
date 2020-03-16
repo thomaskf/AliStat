@@ -58,68 +58,141 @@
 Partition::Partition(vector<string>* seqNames, vector<string>* origSeqs, int dataType, int seqNum, int seqLen,
                      char* validCharArray, UserOptions* userOptions ) {
     
-    int i;
     this->seqNames = seqNames;
     this->origSeqs = origSeqs;
+    this->updateSeqs = NULL;
     this->dataType = dataType;
     this->seqNum = seqNum;
     this->seqLen = seqLen;
-    this->partLen = seqLen;
-    this->partName = "";
     this->validCharArray = validCharArray;
     this->userOptions = userOptions;
     this->partPos = NULL;
-    Cr = new int[seqNum];
-    Cc = new int[seqLen];
-    Cc_part = new int[seqLen];
-    Cij = new int[seqNum*seqNum];
-    Cr_max = Cr_min = -1;
-    Cc_max = Cc_min = -1;
-    Cij_max = Cij_min = -1;
-    memset(Cc, 0, seqLen*sizeof(int));
-    row_index = new int[seqNum];
-    for (i=0; i<seqNum; i++)
-        row_index[i] = i;
-    col_index = new int[seqLen];
-    for (i=0; i<seqLen; i++)
-        col_index[i] = i;
-	recodeMatrix = NULL;
-    if (userOptions->computePDist == 1) {
-        Pij = new int[seqNum*seqNum];
-    } else {
-        Pij = NULL;
+    Cr = NULL;
+    Cc = NULL;
+    Cij = NULL;
+    Pij = NULL;
+    row_index = NULL;
+    col_index = NULL;
+    recodeMatrix = NULL;
     }
-}
 
 // update the array of "validCharArray"
 void Partition::setValidCharArray(char* validCharArray) {
     this->validCharArray = validCharArray;
 }
 
+
 // update the array of "recodeMatrix"
 void Partition::setRecodeMatrix(char* recodeMatrix) {
 	this->recodeMatrix = recodeMatrix;
 }
-	
+
 // update the array "selectPos"
 void Partition::setPartitionPos(PartitionPos* partPos) {
-
-    int i,j,k;
-    int frPos,toPos;
     this->partPos = partPos;
-    this->partLen = partPos->partLen;
-    this->partName = partPos->name;
-    
-    i=0;
-    for (j=0; j<partPos->pair_list.size(); j++) {
-        frPos = partPos->pair_list[j].first;
-        toPos = partPos->pair_list[j].second;
-        for (k=frPos; k<=toPos; k++)
-            col_index[i++] = k;
-    }
-    
 }
-
+	
+// build the update sequence according to the data type
+void Partition::buildUpdateSeqs() {
+    
+    int i,j,k,l,x;
+    int frPos,toPos;
+    int sLen;
+    int nucl2id[256];
+    char newC;
+    bool isInValid;
+    string newStr;
+    vector<pair<int,int> > ranges;
+    if (partPos != NULL) {
+        dataType = partPos->dataType;
+        for (i=0; i<partPos->pair_list.size(); i++) {
+            frPos = partPos->pair_list[i].first;
+            toPos = partPos->pair_list[i].second;
+            ranges.push_back(pair<int,int>(frPos, toPos));
+        }
+    }
+    if (ranges.size() == 0)
+        ranges.push_back(pair<int,int>(0, seqLen-1));
+    if (updateSeqs == NULL)
+        updateSeqs = new vector<string>;
+    else
+        updateSeqs->clear();
+    // set up nucl2id
+    if (dataType == 2 || dataType == 3) {
+        for (i=0; i<256; i++)
+            nucl2id[i] = -1;
+        nucl2id[(int)'A'] = nucl2id[(int)'a'] = 0;
+        nucl2id[(int)'C'] = nucl2id[(int)'c'] = 1;
+        nucl2id[(int)'G'] = nucl2id[(int)'g'] = 2;
+        nucl2id[(int)'T'] = nucl2id[(int)'t'] = 3;
+        nucl2id[(int)'U'] = nucl2id[(int)'u'] = 3;
+    }
+    pos_select.clear();
+    for (i=0; i<seqNum; i++) {
+        newStr = "";
+        for (j=0; j<ranges.size(); j++) {
+            sLen = ranges[j].second - ranges[j].first + 1;
+            if (dataType == 2 || dataType == 3) {
+                // di-nucleotide or codon
+                if (sLen % dataType > 0) {
+                    // Error! Because the length of the sequences does not match with the data type
+                    cerr << "Error! The length of the sequences is not a multiple of " << dataType << endl;
+                    exit(1);
+                }
+                for (k=ranges[j].first; k<=ranges[j].second; k+=dataType) {
+                    newC = 0;
+                    isInValid = false;
+                    for (l=0; l<dataType && (!isInValid); l++) {
+                        x = nucl2id[(int) origSeqs->at(i).at(k+l)];
+                        if (x==-1) {
+                            // not a valid character
+                            isInValid = true;
+                            newC = -1;
+                        } else {
+                            // a valid character
+                            newC = newC*4 + x;
+                        }
+                    }
+                    newStr.append(1, newC+1);
+                    if (i==0)
+                        pos_select.push_back(k);
+                }
+            } else {
+                // not di-nucleotide or codon
+                for (k=ranges[j].first; k<=ranges[j].second; k++) {
+                    newStr.append(1, origSeqs->at(i).at(k));
+                    if (i==0)
+                        pos_select.push_back(k);
+                }
+            }
+        }
+        updateSeqs->push_back(newStr);
+    }
+    if (partPos != NULL) {
+        partName = partPos->name;
+    } else {
+        partName = "";
+    }
+    partLen = newStr.length();
+    
+    // for debugging
+    // show the information of the updateSeqs
+//    cout << "PartName: " << partName << endl;
+//    cout << "PartLen: " << partLen << endl;
+//    cout << "Update seqs:" << endl;
+//    for (i=0; i<updateSeqs->size(); i++) {
+//        if (dataType < 2 || dataType > 3) {
+//            cout << updateSeqs->at(i) << endl;
+//        } else {
+//            for (j=0; j<updateSeqs->at(i).length(); j++) {
+//                if (j>0)
+//                    cout << " ";
+//                cout << (int) updateSeqs->at(i).at(j);
+//            }
+//            cout << endl;
+//        }
+//    }
+}
 
 // compute all figures
 void Partition::computeAllFigures(int showStatus) {
@@ -132,16 +205,15 @@ void Partition::computeAllFigures(int showStatus) {
 	}
 }
 
-
 // output all figures
 void Partition::outputAllFigures(string seqFile, string prefixOut) {
 
     // Output the summary to the file <prefixOut>.summary.txt
     int i;
-    outputSummary(seqFile, prefixOut, (dataType!=3?dataType:partPos->dataType), (partPos!=NULL?partPos->isCodon:0),validCharArray, seqNum, partLen,
+    outputSummary(seqFile, prefixOut, (dataType!=7?dataType:partPos->dataType), (partPos!=NULL?partPos->isCodon:0),validCharArray, seqNum, partLen,
                   Ca, Cr_max, Cr_min, Cc_max, Cc_min, Cij_max, Cij_min,
                   Pij_max, Pij_min, Pij_avg, Pij_exist,
-                  partName, userOptions);
+                  partName, userOptions, dataTypeStr);
 
     
     for (i=0; i<userOptions->outTables.size(); i++) {
@@ -155,12 +227,12 @@ void Partition::outputAllFigures(string seqFile, string prefixOut) {
                 // Output the Distribution of C scores for individual sites (Cc) (i.e. table 2)
                 // to the file <prefixOut>.table2.csv
                 // format 0 : "Index\tSite ID\tCc"; format 1 : "Site ID\tCc"
-                outputTable2(prefixOut, Cc, col_index, seqNum, partLen, partPos==NULL);
+                outputTable2(prefixOut, Cc, col_index, seqNum, partLen, partName=="");
                 break;
             case 3:
                 // Output the Summary of distribution of C scores for individual sites (Cc) (i.e. table 3)
                 // to the file <prefixOut>.table3.csv
-                outputTable3(prefixOut, Cc_part, Cc_min, Cc_max, seqNum, partLen);
+                outputTable3(prefixOut, Cc, Cc_min, Cc_max, seqNum, partLen);
                 break;
             case 4:
                 if (seqNum > 1) {
@@ -205,11 +277,11 @@ void Partition::outSummaryToScreen(string seqFile, string partName, int showHead
 void Partition::outputHeatMap(string prefixOut) {
 	if (userOptions->makeHeatMap==1 || userOptions->makeHeatMap==3) {
 		// Output the triangular heatmap
-		outputTriHeatmap(prefixOut, seqNames, Cij, row_index, seqNum, partLen);
+		outputTriHeatmap(prefixOut, seqNames, Cij, row_index, seqNum, partLen, userOptions->color_scheme);
 	}
 	if (userOptions->makeHeatMap==2 || userOptions->makeHeatMap==3) {
 		// Output the full heatmap
-		outputFullHeatmap(prefixOut, seqNames, Cij, row_index, seqNum, partLen);
+		outputFullHeatmap(prefixOut, seqNames, Cij, row_index, seqNum, partLen, userOptions->color_scheme);
 	}
 }
 
@@ -224,8 +296,10 @@ void Partition::outputAlignment(string prefixOut) {
     if (!userOptions->outputAlign)
         return;
     
-    int i,j;
+    int i,j,k;
     int index,pos;
+    int outLen;
+    int baseunit;
     string seqMask;
     string seqDisc;
     string seqSign;
@@ -238,11 +312,20 @@ void Partition::outputAlignment(string prefixOut) {
     ofstream foutDisc;
     ofstream foutStat;
     
+    if (dataType==2 || dataType==3) {
+        baseunit = dataType;
+    } else {
+        baseunit = 1;
+    }
+    
+    outLen = partLen * baseunit;
+    cout << "outLen = " << outLen << endl;
+    
     foutStat.open(outStatFile.c_str());
     
     // build up the sequence to show whether the column is included in 'Mask.fa' file
     seqSign = "";
-    seqSign.append(seqLen, discardedSign);
+    seqSign.append(outLen, discardedSign);
 
 	// three cases:
 	// case 1: userOptions->maskThres = -1, then output all columns
@@ -251,19 +334,26 @@ void Partition::outputAlignment(string prefixOut) {
 	if (userOptions->maskThres==-1.0) {
 		for (j=0; j<partLen; j++) {
 			pos = col_index[j];
-			seqSign[pos] = maskedSign;
+            for (k=0; k<baseunit; k++) {
+                seqSign[pos * baseunit + k] = maskedSign;
+            }
 		}
 	} else if (userOptions->maskThres==0.0) {
 		for (j=0; j<partLen; j++) {
 			pos = col_index[j];
-			if (Cc[pos]>0)
-				seqSign[pos] = maskedSign;
+            if (Cc[pos]>0) {
+                for (k=0; k<baseunit; k++) {
+                    seqSign[pos * baseunit + k] = maskedSign;
+                }
+            }
 		}
 	} else {
 		for (j=0; j<partLen; j++) {
 			pos = col_index[j];
 			if ((double)Cc[pos]/seqNum>=userOptions->maskThres) {
-				seqSign[pos] = maskedSign;
+                for (k=0; k<baseunit; k++) {
+                    seqSign[pos * baseunit + k] = maskedSign;
+                }
 			}
 		}
 	}
@@ -271,7 +361,7 @@ void Partition::outputAlignment(string prefixOut) {
     printSeq(seqSign, &foutStat, maxColPerLine);
     for (i=0; i<seqNum; i++) {
         foutStat << ">" + seqNames->at(i) << endl;
-        printSeq(origSeqs->at(i), &foutStat, maxColPerLine);
+        printSeq(origSeqs->at(i), &foutStat, maxColPerLine, pos_select, baseunit);
     }
     
     foutStat.close();
@@ -286,10 +376,10 @@ void Partition::outputAlignment(string prefixOut) {
         seqDisc = "";
         for (j=0; j<partLen; j++) {
             pos = col_index[j];
-			if (seqSign[pos] == maskedSign)
-                seqMask.append(1, (origSeqs->at(index))[pos]);
+			if (seqSign[pos * baseunit] == maskedSign)
+                seqMask.append((origSeqs->at(index)).substr(pos_select[pos],baseunit));
             else
-                seqDisc.append(1, (origSeqs->at(index))[pos]);
+                seqDisc.append((origSeqs->at(index)).substr(pos_select[pos],baseunit));
         }
         if (seqMask.length() > 0) {
             foutMask << ">" + seqNames->at(index) << endl;
@@ -318,7 +408,7 @@ void Partition::computeCaCr() {
     for (i=0; i<seqNum; i++) {
         Cr[i] = 0;
         for (j=0; j<partLen; j++) {
-            Cr[i] += validCharArray[origSeqs->at(i)[col_index[j]]];
+            Cr[i] += validCharArray[(int) updateSeqs->at(i)[j]];
         }
     }
     
@@ -343,29 +433,22 @@ void Partition::computeCaCr() {
 // compute all values of Cc, Cc_max, Cc_min
 void Partition::computeCc() {
     int i,j;
-    int pos;
     int first=true;
     
     for (i=0; i<partLen; i++) {
-        pos = col_index[i];
-        if (Cc[pos]==0) {
+        if (Cc[i]==0) {
             for (j=0; j<seqNum; j++) {
-                Cc[pos] += validCharArray[(origSeqs->at(j))[pos]];
+                Cc[i] += validCharArray[(int) updateSeqs->at(j)[i]];
             }
         }
         // get Cc_max, Cc_min
         if (first) {
-            Cc_max = Cc_min = Cc[pos];
+            Cc_max = Cc_min = Cc[i];
             first = false;
-        } else if (Cc[pos] < Cc_min)
-            Cc_min = Cc[pos];
-        else if (Cc[pos] > Cc_max)
-            Cc_max = Cc[pos];
-    }
-    
-    // compute Cc_part
-    for (i=0; i<partLen; i++) {
-        Cc_part[i] = Cc[col_index[i]];
+        } else if (Cc[i] < Cc_min)
+            Cc_min = Cc[i];
+        else if (Cc[i] > Cc_max)
+            Cc_max = Cc[i];
     }
 }
 
@@ -522,14 +605,12 @@ void Partition::computePijCij() {
 // rebuild the binary sequences
 void Partition::rebuildBinaries() {
     int i,j;
-    int pos;
     
     boolArray.resize(seqNum);
     for (i=0; i<seqNum; i++) {
         boolArray[i].clear();
         for (j=0; j<partLen; j++) {
-            pos = col_index[j];
-            boolArray[i].push_back(validCharArray[origSeqs->at(i)[pos]]);
+            boolArray[i].push_back(validCharArray[(int) updateSeqs->at(i)[j]]);
         }
     }
 }
@@ -537,14 +618,12 @@ void Partition::rebuildBinaries() {
 // rebuild the recode sequences
 void Partition::rebuildRecodeSeqs() {
 	int i,j;
-	int pos;
 	
 	recodeSeqs.resize(seqNum);
     for (i=0; i<seqNum; i++) {
         recodeSeqs[i].clear();
         for (j=0; j<partLen; j++) {
-            pos = col_index[j];
-            recodeSeqs[i].append(1, recodeMatrix[origSeqs->at(i)[pos]]);
+            recodeSeqs[i].append(1, recodeMatrix[(int) updateSeqs->at(i)[j]]);
         }
     }
 }
@@ -555,8 +634,6 @@ void Partition::reorderAlignment() {
     
 #define descendingOrder 1
     
-    int i;
-
     if (userOptions->reorder & 1) {
         // 1 or 3
         // reorder the rows
@@ -566,30 +643,42 @@ void Partition::reorderAlignment() {
     if (userOptions->reorder & 2) {
         // 2 or 3
         // reorder the columns
-        
-        // sort the Cc values
-        int* sortedIndex;
-        if (partPos == NULL) {
-            sortedIndex = col_index;
-        } else {
-            sortedIndex = new int[partLen];
-        }
-        sortUnsignInt(Cc_part, partLen, descendingOrder, sortedIndex);
-        
-        // get the corresponding column indices
-        if (partPos != NULL) {
-            for (i=0; i<partLen; i++) {
-                sortedIndex[i] = col_index[sortedIndex[i]];
-            }
-            for (i=0; i<partLen; i++) {
-                col_index[i] = sortedIndex[i];
-            }
-        }
-        
-        // release memory
-        if (partPos != NULL) {
-            delete[] sortedIndex;
-        }
+        sortUnsignInt(Cc, partLen, descendingOrder, col_index);
     }
 }
 
+// set up the array
+void Partition::setupArray() {
+	int i;
+    if (Cr == NULL)
+        Cr = new int[seqNum];
+    if (Cij == NULL)
+        Cij = new int[seqNum*seqNum];
+    if (Cc != NULL)
+        delete Cc;
+    Cc = new int[partLen];
+    Cr_max = Cr_min = -1;
+    Cc_max = Cc_min = -1;
+    Cij_max = Cij_min = -1;
+    memset(Cc, 0, partLen*sizeof(int));
+    if (row_index == NULL)
+        row_index = new int[seqNum];
+    for (i=0; i<seqNum; i++)
+        row_index[i] = i;
+    if (col_index != NULL)
+        delete col_index;
+    col_index = new int[partLen];
+    for (i=0; i<partLen; i++)
+        col_index[i] = i;
+	recodeMatrix = NULL;
+    if (userOptions->computePDist == 1) {
+        if (Pij == NULL)
+            Pij = new int[seqNum*seqNum];
+    }
+}
+
+// set dataTypeStr
+void Partition::setDataTypeStr() {
+    string dataTypeText[] = {"Single nucleotides (SN)", "Di-nucleotides (DN)", "Codons (CD)", "10-state genotype data (10GT)", "14-state genotype data (14GT)", "Amino acids (AA)", "Mixture of nucleotides and amino acids (NA)"};
+    dataTypeStr = dataTypeText[dataType-1];
+}

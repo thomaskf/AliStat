@@ -93,7 +93,18 @@ public:
     
     string alignFile; // multiple alignment file with FASTA format
     
-    int dataType; // 1 - Nucleotide; 2 - Amino acid; 3 - Mixture of nucleotide and amino acid
+    int dataType;
+    /*
+     1  - Single nucleotides (SN);
+     2  - Di-nucleotides (DN);
+     3  - Codons (CD);
+     4  - 10-state genotype data (10GT);
+     5  - 14-state genotype data (14GT);
+     6  - Amino acids (AA);
+     7  - Mixture of nucleotides and amino acids (NA)
+    */
+    
+    string dataTypeStr;
     
     int codeType;
     // 0  - A, C, G, T [default]
@@ -142,6 +153,8 @@ public:
 				     
 	bool briefOutput; // true if option -b is used
     
+    int color_scheme; // 1, 2 or 3; default is 1
+    
     // ======================================================
     // Functions
     // ======================================================
@@ -164,7 +177,9 @@ public:
     
     // by default, outTables = { 1, 2, 3, 4, 5 }
     void setDefaultOutTables();
-    
+
+    // get the data type description
+    void getDataTypeStr();
 };
 
 #endif /* defined(__alistat__UserOptions__) */

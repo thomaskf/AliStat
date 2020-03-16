@@ -61,15 +61,23 @@ int main(int argc, char** argv) {
     vector<string> seqs;
     int seqLen,seqNum;
     char* validCharArr = NULL;
-    char* validNUChars = NULL; // valid characters for nucleotide (i.e. A, C, G, T)
-    char* validAAChars = NULL; // valid characters for amino acid (i.e. the twenty characters)
+    char* validSNChars = NULL;   // valid characters for single nucleotide (i.e. A, C, G, T)
+    char* validDNChars = NULL;   // valid characters for di-nucleotide (i.e. 1 - 16)
+    char* validCDChars = NULL;   // valid characters for codon (i.e. 1 - 64)
+    char* valid10GTChars = NULL; // valid characters for 10GT (i.e. ACGTUWSMKRY)
+    char* valid14GTChars = NULL; // valid characters for 14GT (i.e. ACGTUWSMKRYBDHV)
+    char* validAAChars = NULL;   // valid characters for amino acid (i.e. ARNDCEQGHILKMFPSTWYV)
     UserOptions user_options;
     string errMsg;
     set<string>* seqNameSelected = NULL;
     Partition *partition;
     int i;
 	char* recodeMatrix = NULL;
-	char* recodeNUMatrix = NULL;
+	char* recodeSNMatrix = NULL;
+    char* recodeDNMatrix = NULL;
+    char* recodeCDMatrix = NULL;
+    char* recode10GTMatrix = NULL;
+    char* recode14GTMatrix = NULL;
 	char* recodeAAMatrix = NULL;
 	string partitionName;
 	int showHeader;
@@ -91,25 +99,35 @@ int main(int argc, char** argv) {
     }
     
     // To create an array to indicate which characters are valid
-    if (user_options.dataType == 3) {
-        validNUChars = validCharArray(1,0); // default DNA characters
-        validAAChars = validCharArray(2,0); // default Amino acid characters
+    if (user_options.dataType == 7) {
+        // Mixture of nucleotides and amino acids (NA)
+        validSNChars = validCharArray(1,0); // default DNA characters
+        validDNChars = validCharArray(2,0);
+        validCDChars = validCharArray(3,0);
+        valid10GTChars = validCharArray(4,0);
+        valid14GTChars = validCharArray(5,0);
+        validAAChars = validCharArray(6,0); // default Amino acid characters
     } else {
         validCharArr = validCharArray(user_options.dataType, user_options.codeType);
     }
 	
 	// To create a recoding matrix if necessary
 	if (user_options.computePDist == 1) {
-		if (user_options.dataType == 3) {
-			recodeNUMatrix = makeRecodeMatrix(1,0); // default DNA recoding matrix
-			recodeAAMatrix = makeRecodeMatrix(2,0); // default Amino acid recoding matrix
+		if (user_options.dataType == 7) {
+            // Mixture of nucleotides and amino acids (NA)
+			recodeSNMatrix = makeRecodeMatrix(1,0); // default DNA recoding matrix
+            recodeDNMatrix = makeRecodeMatrix(2,0);
+            recodeCDMatrix = makeRecodeMatrix(3,0);
+            recode10GTMatrix = makeRecodeMatrix(4,0);
+            recode14GTMatrix = makeRecodeMatrix(5,0);
+			recodeAAMatrix = makeRecodeMatrix(6,0); // default Amino acid recoding matrix
 		} else {
 			recodeMatrix = makeRecodeMatrix(user_options.dataType, user_options.codeType);
 		}
 	}
     
     // Output the start message
-    outputStartMessage(user_options, validCharArr, validNUChars, validAAChars);
+    outputStartMessage(user_options, validCharArr, validSNChars, validDNChars, validCDChars, valid10GTChars, valid14GTChars, validAAChars);
     
     // get the selected sequence names
     if (user_options.seqNameFile != "") {
@@ -131,7 +149,6 @@ int main(int argc, char** argv) {
     partition = new Partition(&seqNames, &seqs, user_options.dataType, seqNum, seqLen, validCharArr,
                               &user_options);
     
-    
     if (user_options.slideWindowSize != -1 || user_options.partitionFile != "") {
         // sliding window is used OR A partition file is provided
         
@@ -150,25 +167,63 @@ int main(int argc, char** argv) {
             partitionName = user_options.partitionPosList[i]->name;
             
             partition->setPartitionPos(user_options.partitionPosList[i]);
-            
-            if (user_options.dataType == 3) {
-                if (user_options.partitionPosList[i]->dataType==1)
-                    partition->setValidCharArray(validNUChars);
-                else
-                    partition->setValidCharArray(validAAChars);
+            partition->buildUpdateSeqs();
+            partition->setupArray();
+
+            if (user_options.dataType == 7) {
+                switch(user_options.partitionPosList[i]->dataType) {
+                    case 1:
+                        partition->setValidCharArray(validSNChars);
+                        break;
+                    case 2:
+                        partition->setValidCharArray(validDNChars);
+                        break;
+                    case 3:
+                        partition->setValidCharArray(validCDChars);
+                        break;
+                    case 4:
+                        partition->setValidCharArray(valid10GTChars);
+                        break;
+                    case 5:
+                        partition->setValidCharArray(valid14GTChars);
+                        break;
+                    case 6:
+                        partition->setValidCharArray(validAAChars);
+                        break;
+                }
             }
             
 			if (user_options.computePDist == 1) {
-				if (user_options.dataType == 3) {
-					if (user_options.partitionPosList[i]->dataType==1)
-						partition->setRecodeMatrix(recodeNUMatrix);
-					else
-						partition->setRecodeMatrix(recodeAAMatrix);
+				if (user_options.dataType == 7) {
+                    switch(user_options.partitionPosList[i]->dataType) {
+                        case 1:
+                            partition->setRecodeMatrix(recodeSNMatrix);
+                            break;
+                        case 2:
+                            partition->setRecodeMatrix(recodeDNMatrix);
+                            break;
+                        case 3:
+                            partition->setRecodeMatrix(recodeCDMatrix);
+                            break;
+                        case 4:
+                            partition->setRecodeMatrix(recode10GTMatrix);
+                            break;
+                        case 5:
+                            partition->setRecodeMatrix(recode14GTMatrix);
+                            break;
+                        case 6:
+                            partition->setRecodeMatrix(recodeAAMatrix);
+                            break;
+                    }
 				} else {
 					partition->setRecodeMatrix(recodeMatrix);
 				}
 			}
-			if (user_options.briefOutput) {
+            
+            partition->dataType = user_options.partitionPosList[i]->dataType;
+            partition->setDataTypeStr();
+
+            if (user_options.briefOutput) {
 				showStatus = 0;
 				partition->computeAllFigures(showStatus);
 				if (i==0)
@@ -190,10 +245,14 @@ int main(int argc, char** argv) {
 				outputFinishMessage(fileName(user_options.prefixOut, partitionName), seqNum, user_options.partitionPosList[i]->partLen, &user_options);
             }
         }
-        
     } else {
         // No partition file is provided
-        
+
+        partition->buildUpdateSeqs();
+        partition->setupArray();
+        partition->dataType = user_options.dataType;
+        partition->setDataTypeStr();
+
         if (user_options.briefOutput) {
 			showStatus = 0;
         	partition->computeAllFigures(showStatus);
@@ -278,7 +337,7 @@ void readFasta(string fileName, set<string>* seqNameSelected, vector<string>* se
             }
         } else if (!seqToIgnore) {
             for (i=0; i<aline.length(); i++)
-            seqs->at(seqs->size()-1).append(1, toupper(aline[i]));
+                seqs->at(seqs->size()-1).append(1, toupper(aline[i]));
         }
     }
     fin.close();
@@ -302,7 +361,7 @@ void readFasta(string fileName, set<string>* seqNameSelected, vector<string>* se
 
 
 // To create an array to indicate which characters are valid
-// input: (1) dataType - 1 for DNA; 2 for amino acid; (2) codeType
+// input: (1) dataType - 1-5 for DNA; 6 for amino acid; (2) codeType
 // output: char array X, where X[c] is 1 if character c is valid
 char* validCharArray(int dataType, int codeType) {
     
@@ -310,14 +369,34 @@ char* validCharArray(int dataType, int codeType) {
     memset(validCharArr, 0, 256 * sizeof(char));
     
     string validChars;
+    int i;
+    
     if (dataType == 1) {
-        // DNA
+        // SN
         validChars = "ACGTU";
     } else if (dataType == 2) {
-        // Amino acid
+        // DN
+        validChars = string(16,0);
+        for (i=0; i<16; i++) {
+            validChars[i] = i+1;
+        }
+    } else if (dataType == 3) {
+        // Codons (CD)
+        validChars = string(64,0);
+        for (i=0; i<64; i++) {
+            validChars[i] = i+1;
+        }
+    } else if (dataType == 4) {
+        // 10GT
+        validChars = "ACGTUWSMKRY";
+    } else if (dataType == 5) {
+        // 14GT
+        validChars = "ACGTUWSMKRYBDHV";
+    } else if (dataType == 6) {
+        // AA
         validChars = "ARNDCEQGHILKMFPSTWYV";
     } else {
-        // others
+        // Mixture of nucleotides and amino acids (NA)
         validChars = "";
     }
     
@@ -370,7 +449,6 @@ char* validCharArray(int dataType, int codeType) {
         }
     }
     
-    int i;
     for (i=0; i<validChars.length(); i++)
         validCharArr[(int)validChars[i]] = 1;
     for (i=0; i<otherValidChars.length(); i++)
@@ -385,7 +463,8 @@ char* makeRecodeMatrix(int dataType, int codeType) {
     char* recodeMatrix = new char[256];
 	memset(recodeMatrix, 0, 256 * sizeof(char));
 	
-	if (dataType!=1 && dataType !=2) {
+	if (dataType == 7) {
+        // Mixture of nucleotides and amino acids (NA)
 		return recodeMatrix;
 	}
 	
@@ -471,17 +550,28 @@ char* makeRecodeMatrix(int dataType, int codeType) {
 				numChars=5;
 				break;
 		}
-	} else { // dataType == 2
+    /*
+    } else if (dataType > 1 && dataType <= 5) {
+        frChars= (char*) "ACGTU";
+        toChars= (char*) "ACGTU";
+        numChars=5;
+    */
+	} else if (dataType == 6) {
 		// Amino acid
         frChars =  (char*) "ARNDCEQGHILKMFPSTWYV";
         toChars =  (char*) "ARNDCEQGHILKMFPSTWYV";
 		numChars = 20;
 	}
 	
-	for (i=0; i<numChars; i++) {
-		recodeMatrix[frChars[i]]=toChars[i];
-	}
-	
+    if (frChars != NULL) {
+        for (i=0; i<numChars; i++) {
+            recodeMatrix[(int)frChars[i]]=toChars[i];
+        }
+    } else {
+        for (i=0; i<256; i++) {
+            recodeMatrix[i] = i;
+        }
+    }
 	return recodeMatrix;
 }
 

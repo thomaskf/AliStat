@@ -92,9 +92,8 @@
 
 using namespace std;
 static int HEATMAP_COLOR_NUM = 11;
-static string HEATMAP_COLOR_MAP[] = {"#ef3b2c","#08306B","#08519C","#2171B5","#4292C6","#6BAED6","#9ECAE1","#C6DBEF","#DEEBF7","#F7FBFF","#FFFFFF"};
-// static string HEATMAP_COLOR_MAP[] = {"#000000","#08306B","#08519C","#2171B5","#4292C6","#6BAED6","#9ECAE1","#C6DBEF","#DEEBF7","#F7FBFF","#FFFFFF"};
-// static string HEATMAP_COLOR_MAP[] = {"#000000","#800026","#BD0026","#E31A1C","#FC4E2A","#FD8D3C","#FEB24C","#FED976","#FFEDA0","#FFFFCC","#FFFFFF"};
+static string HEATMAP_COLOR_MAP1[] = {"#ef3b2c","#08306B","#08519C","#2171B5","#4292C6","#6BAED6","#9ECAE1","#C6DBEF","#DEEBF7","#F7FBFF","#FFFFFF"};
+static string HEATMAP_COLOR_MAP2[] = {"#AA0000","#FF2A2A","#FF6600","#FF9955","#FFCC00","#DDFF55","#99FF55","#66FF00","#00AA00","#005500","#002B00"};
 static string HEATMAP_COLOR_DESC[] = {"= 0.0", "&lt; 0.1", "&lt; 0.2", "&lt; 0.3", "&lt; 0.4", "&lt; 0.5", "&lt; 0.6", "&lt; 0.7", "&lt; 0.8", "&lt; 0.9", "&#x2264; 1.0"};
 
 // output the usage of this program
@@ -109,7 +108,7 @@ void outputSummary(string seqFile, string prefixOut, int dataType, int isCodon, 
                    int seqNum, int seqLen, double Ca, double Cr_max, double Cr_min, double Cc_max,
                    double Cc_min, double Cij_max, double Cij_min,
                    double Pij_max, double Pij_min, double Pij_avg, bool Pij_exist,
-                   string partName, UserOptions* userOptions);
+                   string partName, UserOptions* userOptions, string dataTypeStr);
 
 // Output the C scores for individual sequences (Cr) (i.e. table 1)
 // to the file <prefixOut>.table1.csv
@@ -144,16 +143,16 @@ void outputTablePDist(string prefixOut, vector<string>* seqNames, int* Pij, int*
 void outputRScript(string prefixOut, UserOptions& userOption, string partName);
 
 // Output the start message
-void outputStartMessage(UserOptions &user_options, char* validCharArr, char* validNUChars, char* validAAChars);
+void outputStartMessage(UserOptions &user_options, char* validCharArr, char* validSNChars, char* validDNChars, char* validCDChars, char* valid10GTChars, char* valid14GTChars, char* validAAChars);
 
 // Output the finish message
 void outputFinishMessage(string prefixOut, int seqNum, int seqLen, UserOptions* userOptions);
 
 // Output the triangular heatmap
-void outputTriHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int* row_index, int seqNum, int seqLen);
+void outputTriHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int* row_index, int seqNum, int seqLen, int color_scheme);
 
 // Output the full heatmap
-void outputFullHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int* row_index, int seqNum, int seqLen);
+void outputFullHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int* row_index, int seqNum, int seqLen, int color_scheme);
 
 // The corresponding file name
 string fileName(string prefixOut, string file);

@@ -82,8 +82,8 @@ int readArguments(int argc, char** argv, UserOptions* user_options, string* errM
     user_options->dataType = atoi(argv[2]);
     
     // check the value of dataType
-    if (user_options->dataType < 1 || user_options->dataType > 3) {
-        *errMsg = "Error! <data type> has to be 1, 2 or 3.";
+    if (user_options->dataType < 1 || user_options->dataType > 7) {
+        *errMsg = "Error! <data type> has to be between 1 and 7.";
         return 1;
     }
     
@@ -262,6 +262,10 @@ int readArguments(int argc, char** argv, UserOptions* user_options, string* errM
 						user_options->briefOutput = true;
 					}
 					break;
+                    
+                case 'u':
+                    user_options->color_scheme = atoi(value.c_str());
+                    break;
 
 				case 'h':
                     return 2;
@@ -283,12 +287,6 @@ int readArguments(int argc, char** argv, UserOptions* user_options, string* errM
                 return 1;
             }
             
-        }
-        
-        if (user_options->dataType==3 && user_options->partitionFile=="") {
-            // if dataType is 3, then partition file has to be supplied
-            *errMsg = "Error! Partifion file has to be supplied when <data type> = 3";
-            return 1;
         }
         
         if (user_options->briefOutput) {
@@ -313,7 +311,13 @@ int readArguments(int argc, char** argv, UserOptions* user_options, string* errM
         	}
         }
     }
-    
+
+    if (user_options->dataType==7 && user_options->partitionFile=="") {
+        // if dataType is 7, then partition file has to be supplied
+        *errMsg = "Error! Partifion file has to be supplied when <data type> = 7";
+        return 1;
+    }
+
     // set the default value if necessary
     if (user_options->codeType==-1) {
         user_options->codeType = 0;
@@ -324,6 +328,8 @@ int readArguments(int argc, char** argv, UserOptions* user_options, string* errM
     if (user_options->reorder==-1) {
         user_options->reorder = 0;
     }
+    
+    user_options->getDataTypeStr();
     
     return 0;
 }
@@ -347,6 +353,7 @@ void UserOptions::reset() {
 	makeHeatMap = 0;
 	outputAlign = 0;
 	briefOutput = false;
+    color_scheme = 1;
 }
 
 // by default, prefixOut = <alignment file> w/o .ext
@@ -429,36 +436,41 @@ void UserOptions::loadPartitionFile(int seqLen) {
                 partDataTypeID = 0;
                 isCodon = 0;
                 posStr = "";
-                
                 if (pos > 0) {
                     tokenizer(aline.substr(0,(int)pos), ",", &token0);
                     if (token0.size() > 1) {
                         partDataType = token0[0];
                         trimAll(partDataType);
-                        if (partDataType == "NU")
+                        if (partDataType == "SN")
                             partDataTypeID = 1;
-                        else if (partDataType == "AA")
+                        else if (partDataType == "DN")
                             partDataTypeID = 2;
+                        else if (partDataType == "CD")
+                            partDataTypeID = 3;
+                        else if (partDataType == "10GT")
+                            partDataTypeID = 4;
+                        else if (partDataType == "14GT")
+                            partDataTypeID = 5;
+                        else if (partDataType == "AA")
+                            partDataTypeID = 6;
                         else if (partDataType.length() > 0) {
                             errMsg = "data type of the partition is unknown";
                             break;
                         }
                         name = token0[1];
                     } else {
+                        partDataTypeID = dataType;
                         name = token0[0];
                     }
                     trimAll(name);
                 }
                 
                 // check whether the data type of the partition is correct
-                if (this->dataType==1 && partDataTypeID==2) {
-                    errMsg = "<data type> = 1, but amino acid partition exists";
+                if (this->dataType > 0 && this->dataType < 7 && this->dataType!=partDataTypeID) {
+                    errMsg = "The specific data type does not match with the data type of the partition";
                     break;
-                } else if (this->dataType==2 && partDataTypeID==1) {
-                    errMsg = "<data type> = 2, but nucleotide partition exists";
-                    break;
-                } else if (this->dataType==3 && partDataTypeID==0) {
-                    errMsg = "<data type> = 3, but data type of the partition is unknown";
+                } else if (this->dataType==7 && partDataTypeID==0) {
+                    errMsg = "<data type> = 7, but data type of the partition is unknown";
                     break;
                 }
                 
@@ -486,8 +498,8 @@ void UserOptions::loadPartitionFile(int seqLen) {
                         posStr.resize(posStr.length()-2);
                     }
                     
-                    if (isCodon && (this->dataType==2 || partDataTypeID==2)) {
-                        errMsg = "codon partition cannot be applied for amino acid data type";
+                    if (isCodon && (this->dataType!=3 || partDataTypeID!=3)) {
+                        errMsg = "codon partition can only be applied for codon data type";
                         break;
                     }
                 }
@@ -542,23 +554,17 @@ void UserOptions::loadPartitionFile(int seqLen) {
         cerr << errMsg << " in the line:" << endl;
         cerr << "     " << aline << endl;
         cerr << endl;
-        if (dataType==3) {
-            cerr << "When <data type> = 3, the format of the partition file should be:" << endl;
+        if (dataType==7) {
+            cerr << "When <data type> = 7, the format of the partition file should be:" << endl;
             cerr << "-----------------------------------------------------------------" << endl;
-            cerr << "<NU/AA>, <partition name> = <start pos> - <end pos>, ..." << endl;
+            cerr << "\"<SN/DN/CD/10GT/14GT/AA>, <partition name 1>=<start pos>-<end pos>, ...\"" << endl;
+            cerr << "\"<SN/DN/CD/10GT/14GT/AA>, <partition name 2>= ...\"" << endl;
             cerr << "For example:" << endl;
-            cerr << "   NU,part1=1-50,60-100" << endl;
-            cerr << "   NU,part2=101-200" << endl;
-            cerr << "   NU,part3=201-220,240-260,270-300" << endl << endl;
-            
-            cerr << "If considering the specific codon positions, the format should be:" << endl;
-            cerr << "<NU/AA>, <partition name> = <start pos> - <end pos>, ...\\3" << endl;
-            cerr << "For example:" << endl;
-            cerr << "   NU,codon1=1-7\\3" << endl;
-            cerr << "   NU,codon2=2-8\\3" << endl;
-            cerr << "   NU,codon3=3-9\\3" << endl << endl;
-            
-            cerr << "(NA - nucleotide; AA - amino acid)" << endl;
+            cerr << "   SN,part1=1-50,60-100" << endl;
+            cerr << "   AA,part2=101-200" << endl;
+            cerr << "   CD,part3=201-231" << endl << endl;
+            cerr << "(SN - single nucleotide; DN - di-nucleotide; CD - codons;" << endl;
+            cerr << "10GT - 10-state genotype data; 14GT - 14-state genotype data; AA - amino acid)" << endl;
             cerr << "(enumeration starts with 1, and all partition names are unique)" << endl;
         } else {
             cerr << "The format of the partition file should be:" << endl;
@@ -569,21 +575,8 @@ void UserOptions::loadPartitionFile(int seqLen) {
             cerr << "   part1=1-50,60-100" << endl;
             cerr << "   part2=101-200" << endl;
             cerr << "   part3=201-220,240-260,270-300" << endl << endl;
-
-            if (dataType==1) {
-                cerr << "If considering the specific codon positions, the format should be:" << endl;
-                cerr << "<partition name 1> = <start pos 1> - <end pos 1>, ...\\3" << endl;
-                cerr << "<partition name 2> = ...\\3" << endl;
-                cerr << "For example:" << endl;
-                cerr << "   codon1=1-7\\3" << endl;
-                cerr << "   codon2=2-8\\3" << endl;
-                cerr << "   codon3=3-9\\3" << endl << endl;
-            }
-
             cerr << "(enumeration starts with 1, and all partition names are unique)" << endl;
         }
-
-
         exit(1);
     }
     
@@ -597,12 +590,12 @@ void UserOptions::loadPartitionFile(int seqLen) {
     cout << "Partition information:" << endl;
     cout << "--------------------------------------------------------------------------------" << endl;
     
-    cout << "Name\tPositions";
-    if (dataType==3)
+    cout << "Name\tPos";
+    if (dataType==7)
         cout << "\tData type";
     cout << endl;
     for (i=0; i<partitionPosList.size(); i++) {
-        partitionPosList[i]->print(dataType==3);
+        partitionPosList[i]->print(dataType==7);
     }
     cout << "================================================================================" << endl;
     
@@ -615,6 +608,17 @@ void UserOptions::createPartFrSlideWin(int seqLen) {
     PartitionPos* newPart;
     string name;
     int frPos, toPos;
+    
+    if (dataType == 2 || dataType == 3) {
+        if (slideWindowSize % dataType > 0) {
+            cerr << "Error! The size of the sliding window has to be a multiple of " << dataType << endl;
+            exit(1);
+        }
+        if (slideWindowStep % dataType > 0) {
+            cerr << "Error! The step of the sliding window has to be a multiple of " << dataType << endl;
+            exit(1);
+        }
+    }
     
     for (i=0; i<=seqLen-slideWindowSize; i+=slideWindowStep) {
         frPos = i+1;
@@ -644,6 +648,11 @@ void UserOptions::createPartFrSlideWin(int seqLen) {
         partitionPosList[i]->consolidate();
     }
     
+    // set the dataType
+    for (i=0; i<partitionPosList.size(); i++) {
+        partitionPosList[i]->dataType = dataType;
+    }
+    
     // print the partition information
     cout << "================================================================================" << endl;
     cout << "Partition information:" << endl;
@@ -656,6 +665,13 @@ void UserOptions::createPartFrSlideWin(int seqLen) {
     cout << "================================================================================" << endl;
 }
 
+
+// get the data type description
+void UserOptions::getDataTypeStr() {
+    string dataTypeText[] = {"Single nucleotides (SN)", "Di-nucleotides (DN)", "Codons (CD)", "10-state genotype data (10GT)", "14-state genotype data (14GT)", "Amino acids (AA)", "Mixture of nucleotides and amino acids (NA)"};
+    dataTypeStr = dataTypeText[dataType-1];
+
+}
 
 // constructor
 PartitionPos::PartitionPos(string name, int seqLen, int partDataTypeID, int isCodon) {
@@ -717,6 +733,7 @@ void PartitionPos::consolidate() {
 }
 
 void PartitionPos::print(bool showDataType) {
+    string dataTypeText[] = {"Single nucleotides (SN)", "Di-nucleotides (DN)", "Codons (CD)", "10-state genotype data (10GT)", "14-state genotype data (14GT)", "Amino acids (AA)", "Mixture of nucleotides and amino acids (NA)"};
     int i;
     cout << name << "\t";
     for (i=0; i<pair_list.size(); i++) {
@@ -728,15 +745,7 @@ void PartitionPos::print(bool showDataType) {
             cout << pair_list[i].first+1 << "-" << pair_list[i].second+1;
     }
     if (showDataType) {
-        cout << "\t";
-        switch(dataType) {
-            case 1:
-                cout << "nucleotide";
-                break;
-            case 2:
-                cout << "amino acid";
-                break;
-        }
+        cout << "\t" << dataTypeText[dataType-1];
     }
     if (isCodon) {
         cout << "\t[codon site]";
@@ -756,3 +765,4 @@ void PartitionPos::printPosOnly() {
     }
     cout << endl;
 }
+

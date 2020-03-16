@@ -61,14 +61,25 @@ void outputUsage(char* progName) {
     
     cout << "Syntax: " << progName << " <alignment file> <data type> [other options]" << endl;
     cout << "        " << progName << " -h" << endl << endl;
-    
+
     cout << "  <alignment file> : Multiple alignment file in FASTA format" << endl;
+    
+    /*
     cout << "  <data type>      : 1  - Nucleotide;" << endl;
     cout << "                     2  - Amino acid;" << endl;
     cout << "                     3  - Mixture of nucleotide and amino acid" << endl;
-    cout << "                          (User has to specify the data type of each partition" << endl;
-    cout << "                           in the partition file)" << endl;
+    */
     
+    cout << "  <data type>      : 1  - Single nucleotides (SN);" << endl;
+    cout << "                     2  - Di-nucleotides (DN);" << endl;
+    cout << "                     3  - Codons (CD);" << endl;
+    cout << "                     4  - 10-state genotype data (10GT);" << endl;
+    cout << "                     5  - 14-state genotype data (14GT);" << endl;
+    cout << "                     6  - Amino acids (AA);" << endl;
+    cout << "                     7  - Mixture of nucleotides and amino acids (NA)" << endl;
+    cout << "                          (User has to specify the data type for each partition" << endl;
+    cout << "                           inside the partition file)" << endl;
+
     cout << "other options:" << endl;
     cout << "  -b               : Report the brief summary of figures to the screen" << endl;
     cout << "                     Output format:" << endl;
@@ -93,28 +104,29 @@ void outputUsage(char* progName) {
     cout << "                     (default: <alignment file> w/o .ext)" << endl;
     cout << "  -n <FILE>        : Only consider sequences with names listed in FILE" << endl;
     cout << "  -p <FILE>        : Specify the partitions" << endl;
-    cout << "                     For <data type> = 1 or 2, partition file format:" << endl;
+    cout << "                     For <data type> = 1 - 6, partition file format:" << endl;
     cout << "                       \"<partition name 1>=<start pos>-<end pos>, ...\"" << endl;
     cout << "                       \"<partition name 2>= ...\"" << endl;
     cout << "                       Example:" << endl;
     cout << "                           part1=1-50,60-100" << endl;
     cout << "                           part2=101-200" << endl;
     cout << "                       (enumeration starts with 1)" << endl;
-    cout << "                     For <data type> = 3, partition file format:" << endl;
-    cout << "                       \"<NU/AA>, <partition name 1>=<start pos>-<end pos>, ...\"" << endl;
-    cout << "                       \"<NU/AA>, <partition name 2>= ...\"" << endl;
+    cout << "                     For <data type> = 7, partition file format:" << endl;
+    cout << "                       \"<SN/DN/CD/10GT/14GT/AA>, <partition name 1>=<start pos>-<end pos>, ...\"" << endl;
+    cout << "                       \"<SN/DN/CD/10GT/14GT/AA>, <partition name 2>= ...\"" << endl;
     cout << "                       Example:" << endl;
-    cout << "                           NU,part1=1-50,60-100" << endl;
+    cout << "                           SN,part1=1-50,60-100" << endl;
     cout << "                           AA,part2=101-200" << endl;
-    cout << "                     For nucleotide data, in order to consider specific codon" << endl;
-    cout << "                     position:" << endl;
-    cout << "                       \"<partition name>=<start pos>-<end pos>, ... \\3\"" << endl;
-    cout << "                        or" << endl;
-    cout << "                       \"<NU>, <partition name>=<start pos>-<end pos>, ... \\3\"" << endl;
-    cout << "                        Example:" << endl;
-    cout << "                           NU,codon1=1-7\\3" << endl;
-    cout << "                           NU,codon2=2-8\\3" << endl;
-    cout << "                           NU,codon3=3-9\\3" << endl;
+    cout << "                           CD,part3=201-231" << endl;
+//    cout << "                     For codon data, in order to consider specific codon" << endl;
+//    cout << "                     position:" << endl;
+//    cout << "                       \"<partition name>=<start pos>-<end pos>, ... \\3\"" << endl;
+//    cout << "                        or" << endl;
+//    cout << "                       \"<CD>, <partition name>=<start pos>-<end pos>, ... \\3\"" << endl;
+//    cout << "                        Example:" << endl;
+//    cout << "                           CD,codon1=1-7\\3" << endl;
+//    cout << "                           CD,codon2=2-8\\3" << endl;
+//    cout << "                           CD,codon3=3-9\\3" << endl;
     cout << "                     (this option cannot be used with '-s' at the same time)" << endl;
     cout << "  -s <n1,n2>       : Sliding window analysis: window size = n1; step size = n2" << endl;
     cout << "                     (this option cannot be used with '-p' at the same time)" << endl;
@@ -184,6 +196,9 @@ void outputUsage(char* progName) {
     cout << "                     (default: disabled)" << endl;
 	cout << "                     Note: computation of p distances may take long time for" << endl;
 	cout << "                          large number of sequences" << endl;
+    cout << "  -u               : Color scheme of the heatmaps" << endl;
+    cout << "                     1 - Default color scheme, suitable for color-blind persons" << endl;
+    cout << "                     2 - Another color scheme" << endl;
 	cout << "  -h               : This help page" << endl;
     cout << "================================================================================" << endl;
 }
@@ -230,32 +245,16 @@ void outputSummary(string seqFile, string prefixOut, int dataType, int isCodon, 
                    int seqNum, int seqLen, double Ca, double Cr_max, double Cr_min, double Cc_max,
                    double Cc_min, double Cij_max, double Cij_min,
                    double Pij_max, double Pij_min, double Pij_avg, bool Pij_exist,
-                   string partName, UserOptions* userOptions) {
+                   string partName, UserOptions* userOptions, string dataTypeStr) {
     
     int i;
     
     string outFileName = fileName(prefixOut, "Summary.txt");
     ofstream fout;
-    fout.open(outFileName.c_str());
-    
-    fout << "Name of input file ............................................ " << seqFile << endl;
-    fout << "Type of data .................................................. ";
-    if (isCodon)
-        fout << "codons" << endl;
-    else if (dataType==1)
-        fout << "nucleotides" << endl;
-    else
-        fout << "amino acids" << endl;
-    fout << "Characters used ............................................... ";
-    for (i=0; i<256; i++) {
-        if (validCharArr[i]) {
-            fout << (char) i;
-        }
-    }
-    fout << endl;
-    
     string term = "alignment   ";
-    
+
+    fout.open(outFileName.c_str());
+    fout << "Name of input file ............................................ " << seqFile << endl;
     if (userOptions->slideWindowSize != -1) {
         fout << "Sliding window positions ...................................... " << partName << endl;
         term = "slide window";
@@ -263,7 +262,17 @@ void outputSummary(string seqFile, string prefixOut, int dataType, int isCodon, 
         fout << "Partition name ................................................ " << partName << endl;
         term = "partition   ";
     }
-    
+
+    fout << "Type of data .................................................. " << dataTypeStr << endl;
+    if (dataType == 1 || dataType == 4 || dataType == 5 || dataType == 6) {
+        fout << "Characters used ............................................... ";
+        for (i=0; i<256; i++) {
+            if (validCharArr[i]) {
+                fout << (char) i;
+            }
+        }
+        fout << endl;
+    }
     
     fout << "Number of sequences in the "<< term << " ....................... " << seqNum << endl;
     fout << "Number of sites in the " << term << " ........................... " << seqLen << endl;
@@ -372,7 +381,7 @@ void outputTable1(string prefixOut, int* Cr, int* row_index, vector<string>* seq
     fout << "TABLE 1: C scores for individual sequences (Cr)" << endl;
     fout << "(Proportion of sites with unambiguous characters in a given sequence)" << endl << endl;
      */ 
-    fout << "Seq ID" << SEPARATOR << "Sequence" << SEPARATOR << "Sites" << SEPARATOR << "Cr" << endl;
+    fout << "Seq ID" << SEPARATOR << "Sequence" << SEPARATOR << "Valid sites" << SEPARATOR << "Cr" << endl;
     for (i=0; i<seqNum; i++) {
         fout << row_index[i]+1 << SEPARATOR << seqNames->at(row_index[i]) << SEPARATOR << Cr[row_index[i]] << SEPARATOR;
         fout << (double) Cr[row_index[i]] / partLen << endl;
@@ -646,7 +655,7 @@ void outputRScript(string prefixOut, UserOptions& user_options, string partName)
 }
 
 // Output the start message
-void outputStartMessage(UserOptions &user_options, char* validCharArr, char* validNUChars, char* validAAChars) {
+void outputStartMessage(UserOptions &user_options, char* validCharArr, char* validSNChars, char* validDNChars, char* validCDChars, char* valid10GTChars, char* valid14GTChars, char* validAAChars) {
     
     int i;
     
@@ -655,18 +664,26 @@ void outputStartMessage(UserOptions &user_options, char* validCharArr, char* val
     
     cout << "Name of input file ............................................ " << user_options.alignFile << endl;
     
-    cout << "Type of data .................................................. ";
-    if (user_options.dataType==1)
-        cout << "Nucleotides" << endl;
-    else if (user_options.dataType==2)
-        cout << "Amino acids" << endl;
-    else
-        cout << "Mixture of nucleotides and amino acids" << endl;    
-
-    if (user_options.dataType==3) {
-        cout << "Characters used for nucleotide data ........................... ";
+    cout << "Type of data .................................................. " << user_options.dataTypeStr << endl;
+    
+    if (user_options.dataType==7) {
+        cout << "Characters used for single nucleotide data .................... ";
         for (i=0; i<256; i++) {
-            if (validNUChars[i]) {
+            if (validSNChars[i]) {
+                cout << (char) i;
+            }
+        }
+        cout << endl;
+        cout << "Characters used for 10-state genotype data .................... ";
+        for (i=0; i<256; i++) {
+            if (valid10GTChars[i]) {
+                cout << (char) i;
+            }
+        }
+        cout << endl;
+        cout << "Characters used for 14-state genotype data .................... ";
+        for (i=0; i<256; i++) {
+            if (valid14GTChars[i]) {
                 cout << (char) i;
             }
         }
@@ -678,7 +695,7 @@ void outputStartMessage(UserOptions &user_options, char* validCharArr, char* val
             }
         }
         cout << endl;
-    } else {
+    } else if (user_options.dataType < 2 || user_options.dataType > 3) {
         cout << "Characters used ............................................... ";
         for (i=0; i<256; i++) {
             if (validCharArr[i]) {
@@ -686,6 +703,8 @@ void outputStartMessage(UserOptions &user_options, char* validCharArr, char* val
             }
         }
         cout << endl;
+    } else {
+        cout << "Characters used ............................................... ACGTU" << endl;
     }
 
     if (user_options.prefixOut.length()>0)
@@ -871,7 +890,7 @@ void outputSeqName(ofstream& fout, double x, double y, int angle, string txt, st
 }
 
 // get the corresponding color code according to the value
-string getColor(double value) {
+string getColor(double value, int color_scheme) {
     // 0 : 0.0
     // 1 : (0.0, 0.1)
     // 2 : [0.1, 0.2)
@@ -884,13 +903,24 @@ string getColor(double value) {
     // 9 : [0.8, 0.9)
     // 10: [0.9, 1.0]
     
-    if (value <= 0.0)
-        return HEATMAP_COLOR_MAP[0];
-    else if (value >= 1.0)
-        return HEATMAP_COLOR_MAP[10];
-    else
-        return HEATMAP_COLOR_MAP[(int)(value*10.0) + 1];
-
+    switch (color_scheme) {
+        case 2:
+            if (value <= 0.0)
+                return HEATMAP_COLOR_MAP2[0];
+            else if (value >= 1.0)
+                return HEATMAP_COLOR_MAP2[10];
+            else
+                return HEATMAP_COLOR_MAP2[(int)(value*10.0) + 1];
+            break;
+        default:
+            if (value <= 0.0)
+                return HEATMAP_COLOR_MAP1[0];
+            else if (value >= 1.0)
+                return HEATMAP_COLOR_MAP1[10];
+            else
+                return HEATMAP_COLOR_MAP1[(int)(value*10.0) + 1];
+            break;
+    }
 }
 
 // get the longest length among the first "num" strings inside the array
@@ -930,7 +960,7 @@ int longestLen(vector<string>* seqArray) {
 }
 
 // output the legend
-void outputLegend(ofstream& fout, int x, int y) {
+void outputLegend(ofstream& fout, int x, int y, int color_scheme) {
 
     double x_text, y_text;
     x_text = x + HEATMAP_LEGEND_BLOCK_DIM + HEATMAP_LEGEND_GAP_BW_DESC;
@@ -938,7 +968,14 @@ void outputLegend(ofstream& fout, int x, int y) {
     int i;
     for (i=0; i<HEATMAP_COLOR_NUM; i++) {
         // print out the square
-        outputSquare(fout, x, y, HEATMAP_COLOR_MAP[i], HEATMAP_LEGEND_BLOCK_DIM);
+        switch(color_scheme) {
+            case 2:
+                outputSquare(fout, x, y, HEATMAP_COLOR_MAP2[i], HEATMAP_LEGEND_BLOCK_DIM);
+                break;
+            default:
+                outputSquare(fout, x, y, HEATMAP_COLOR_MAP1[i], HEATMAP_LEGEND_BLOCK_DIM);
+                break;
+        }
         // print out the description for each color
         outputSeqName(fout, x_text, y_text, HEATMAP_LEGEND_DESC_ANGLE, HEATMAP_COLOR_DESC[i], HEATMAP_LEGEND_FONT, HEATMAP_LEGEND_FONT_SIZE, HEATMAP_LEGEND_TEXT_ALIGN);
         y += HEATMAP_LEGEND_BLOCK_DIM;
@@ -947,7 +984,7 @@ void outputLegend(ofstream& fout, int x, int y) {
 }
 
 // Output the triangular heatmap
-void outputTriHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int* row_index, int seqNum, int seqLen) {
+void outputTriHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int* row_index, int seqNum, int seqLen, int color_scheme) {
     
     int block_size = HEATMAP_BLOCK_DIM;
     int font_size = HEATMAP_FONT_SIZE;
@@ -995,7 +1032,7 @@ void outputTriHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int*
             col = row_index[j];
             // print out the squares representing the Cij values
             cij = (double)Cij[row*seqNum+col]/seqLen;
-            outputSquare(fout, x, y, getColor(cij), block_size);
+            outputSquare(fout, x, y, getColor(cij, color_scheme), block_size);
             x += block_size;
         }
         
@@ -1006,7 +1043,7 @@ void outputTriHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int*
     y = HEATMAP_TOP_BORDER;
     x = HEATMAP_LEFT_BORDER + longestFirstTextLen*font_size/2.0 + HEATMAP_GAP_BW_TEXT + 
                 block_size*(seqNum-1) + HEATMAP_GAP_BW_LEGEND;
-    outputLegend(fout, x, y);
+    outputLegend(fout, x, y, color_scheme);
     
     // output the tail
     outputSVGTail(fout);
@@ -1015,7 +1052,7 @@ void outputTriHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int*
 }
 
 // Output the full heatmap
-void outputFullHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int* row_index, int seqNum, int seqLen) {
+void outputFullHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int* row_index, int seqNum, int seqLen, int color_scheme) {
     
     int block_size = HEATMAP_BLOCK_DIM;
     int font_size = HEATMAP_FONT_SIZE;
@@ -1061,7 +1098,7 @@ void outputFullHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int
             col = row_index[j];
             // print out the squares representing the Cij values
             cij = (double)Cij[row*seqNum+col]/seqLen;
-            outputSquare(fout, x, y, getColor(cij), block_size);
+            outputSquare(fout, x, y, getColor(cij, color_scheme), block_size);
             x += block_size;
         }
 
@@ -1073,7 +1110,7 @@ void outputFullHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int
             col = row_index[j];
             // print out the squares representing the Cij values
             cij = (double)Cij[row*seqNum+col]/seqLen;
-            outputSquare(fout, x, y, getColor(cij), block_size);
+            outputSquare(fout, x, y, getColor(cij, color_scheme), block_size);
             x += block_size;
         }
         
@@ -1084,7 +1121,7 @@ void outputFullHeatmap(string prefixOut, vector<string>* seqNames, int* Cij, int
     y = HEATMAP_TOP_BORDER;
     x = HEATMAP_LEFT_BORDER + longestTextLen*font_size/2.0 + HEATMAP_GAP_BW_TEXT + 
                 block_size*seqNum + HEATMAP_GAP_BW_LEGEND;
-    outputLegend(fout, x, y);
+    outputLegend(fout, x, y, color_scheme);
     
     // output the tail
     outputSVGTail(fout);

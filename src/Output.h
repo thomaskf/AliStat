@@ -82,6 +82,8 @@
 #define HEATMAP_GAP_BW_LEGEND 20
 #define HEATMAP_LEGEND_GAP_BW_DESC 5
 
+#define LENGTH_RATIO 1.06
+
 #define R_MESSAGE "To generate the charts by using our R scripts: \n\t $ R CMD BATCH <R script file>"
 
 #include <iostream>

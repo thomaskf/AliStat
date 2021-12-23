@@ -932,7 +932,7 @@ int longestLenFirst(vector<string>* seqArray, int* row_index, int num) {
     for (i=1; i<num && i<seqArray->size(); i++)
         if (seqArray->at(row_index[i]).length() > max_len)
             max_len = seqArray->at(row_index[i]).length();
-    return max_len;
+    return max_len * LENGTH_RATIO;
 }
 
 // get the longest length among the last "num" strings inside the array
@@ -944,7 +944,7 @@ int longestLenLast(vector<string>* seqArray, int* row_index, int num) {
     for (i=seqArray->size()-2; i>=seqArray->size()-num && i>=0; i--)
         if (seqArray->at(row_index[i]).length() > max_len)
             max_len = seqArray->at(row_index[i]).length();
-    return max_len;
+    return max_len * LENGTH_RATIO;
 }
 
 // get the longest length among all the strings inside the array
@@ -956,7 +956,7 @@ int longestLen(vector<string>* seqArray) {
     for (i=1; i<seqArray->size(); i++)
         if (seqArray->at(i).length() > max_len)
             max_len = seqArray->at(i).length();
-    return max_len;
+    return max_len * LENGTH_RATIO;
 }
 
 // output the legend

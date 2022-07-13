@@ -275,7 +275,10 @@ void outputSummary(string seqFile, string prefixOut, int dataType, int isCodon, 
     }
     
     fout << "Number of sequences in the "<< term << " ....................... " << seqNum << endl;
-    fout << "Number of sites in the " << term << " ........................... " << seqLen << endl;
+    if (dataType==3)
+    	fout << "Number of codon sites in the " << term << " ..................... " << seqLen << endl;
+    else
+    	fout << "Number of sites in the " << term << " ........................... " << seqLen << endl;
     fout << "Pairs of sequences ............................................ " << seqNum * (seqNum-1) / 2 << endl;
     fout << "Completeness (C) score for the " << term << " (Ca) .............. " << (double)Ca/(seqNum*seqLen) << endl;
     fout << "Maximum C-score for individual sequences (Cr_max) ............. " << (double)Cr_max/seqLen << endl;
@@ -534,9 +537,9 @@ void outputTable6(string prefixOut, vector<string>* seqNames, int* Cij, int* row
     // fout << "TABLE 6: completeness scores (Cij) and incompleteness scores (Iij = 1.0 - Cij)" << endl;
 
     fout << "taxon 1" << SEPARATOR << "taxon 2" << SEPARATOR << "Cij" << SEPARATOR <<"Iij" << endl;
-    for (i=0; i<seqNum; i++) {
+    for (i=0; i<seqNum-1; i++) {
         i_index = row_index[i];
-        for (j=0; j<seqNum; j++) {
+        for (j=i+1; j<seqNum; j++) {
             j_index = row_index[j];
             cij = (double)Cij[i_index*seqNum+j_index]/seqLen;
             fout << seqNames->at(i_index) << SEPARATOR << seqNames->at(j_index) << SEPARATOR << cij << SEPARATOR << 1.0-cij << endl;
@@ -703,6 +706,8 @@ void outputStartMessage(UserOptions &user_options, char* validCharArr, char* val
             }
         }
         cout << endl;
+    } else if (user_options.dataType == 3) {
+        cout << "Characters used ............................................... AAA,...,TTT/UUU" << endl;
     } else {
         cout << "Characters used ............................................... ACGTU" << endl;
     }
@@ -784,7 +789,10 @@ void outputFinishMessage(string prefixOut, int seqNum, int seqLen, UserOptions* 
 
     cout << "================================================================================" << endl;
     cout << "Number of sequences in the " << term << "....................... " << seqNum << endl;
-    cout << "Number of sites in the " << term << "........................... " << seqLen << endl;
+    if (userOptions->dataType == 3)
+    	cout << "Number of codon sites in the " << term << "..................... " << seqLen/3 << endl;
+    else
+    	cout << "Number of sites in the " << term << "........................... " << seqLen << endl;
     cout << "Summary of statistics stored in ............................... " << fileName(prefixOut, "Summary.txt") << endl;
     
     for (i=0; i<userOptions->outTables.size(); i++) {

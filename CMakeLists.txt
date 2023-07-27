@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project(AliStat)
 
+set(CPACK_PACKAGE_VERSION "1.15")
+
 ###############################################################################
 ## file globbing ##############################################################
 ###############################################################################
@@ -302,9 +304,6 @@ endif()
 include (InstallRequiredSystemLibraries)
 set (CPACK_RESOURCE_FILE_LICENSE
      "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-
-set(CPACK_PACKAGE_NAME "alistat")
-set(CPACK_PACKAGE_VERSION "1.5")
 
 if(WIN32 OR APPLE)
   set(CPACK_GENERATOR "ZIP")

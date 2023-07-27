@@ -603,7 +603,8 @@ void outputRScript(string prefixOut, UserOptions& user_options, string partName)
             fout << "d <- read.csv(\"" << tableFileName << "\", header=T)" << endl;
             fout << "head(d)" << endl;
             fout << "pdf(height=4, width=3.5, file=\"" << outPdfName << "\")" << endl;
-            fout << "hist(d$Cr, breaks = 20, col=\"lightblue\", freq = TRUE, xlim=c(0,1), xlab=\"Cr\", main=\"" << chartTitle << "\")" << endl;
+            fout << "cbks <- seq(0,1,0.05)" << endl;
+            fout << "hist(d$Cr, breaks = cbks, col=\"lightblue\", freq = TRUE, xlim=c(0,1), xlab=\"Cr\", main=\"" << chartTitle << "\")" << endl;
             fout << "dev.off()" << endl;
             fout.close();
             
@@ -623,7 +624,8 @@ void outputRScript(string prefixOut, UserOptions& user_options, string partName)
             fout << "d <- read.csv(\"" << tableFileName << "\", header=T)" << endl;
             fout << "head(d)" << endl;
             fout << "pdf(height=4, width=3.5, file=\"" << outPdfName << "\")" << endl;
-            fout << "hist(d$Cc, breaks = 20, col=\"lightblue\", freq = TRUE, xlim=c(0,1), xlab=\"Cc\", main=\"" << chartTitle << "\")" << endl;
+            fout << "cbks <- seq(0,1,0.05)" << endl;
+            fout << "hist(d$Cc, breaks = cbks, col=\"lightblue\", freq = TRUE, xlim=c(0,1), xlab=\"Cc\", main=\"" << chartTitle << "\")" << endl;
             fout << "dev.off()" << endl;
             fout.close();
             

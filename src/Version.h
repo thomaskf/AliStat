@@ -55,6 +55,6 @@
 #ifndef Alistat_Version_h
 #define Alistat_Version_h
 
-#define VERSION "1.14"
+#define VERSION "1.15"
 
 #endif

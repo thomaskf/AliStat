@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(alistat)
+project(AliStat)
 
 ###############################################################################
 ## file globbing ##############################################################
@@ -262,19 +262,80 @@ endif()
 # basic linking libraries
 target_link_libraries(alistat PUBLIC ${PLATFORM_LIB} ${STD_LIB} ${THREAD_LIB} ${ATOMIC_LIB})
 
+##############################################################
+# add the install targets
+##############################################################
+install (TARGETS alistat DESTINATION bin)
+install (FILES "${PROJECT_SOURCE_DIR}/test.fas" DESTINATION examples)
+install (FILES "${PROJECT_SOURCE_DIR}/M_Ento.fas" DESTINATION examples)
+install (FILES "${PROJECT_SOURCE_DIR}/M_Ento.partition" DESTINATION examples)
+install (FILES "${PROJECT_SOURCE_DIR}/AliStat_manual.pdf" DESTINATION .)
+
+if (WIN32)
+    install (FILES "${BINARY_DIR}/alistat${EXE_SUFFIX}-click.exe" DESTINATION bin)
+    if (NOT ALISTAT_FLAGS MATCHES "single" AND MSVC)
+        if (BINARY32)
+            install(FILES  "${PROJECT_SOURCE_DIR}/lib32/pthreadVC2.dll" DESTINATION bin)
+            install(FILES  "${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll" DESTINATION bin)
+        else()
+            install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadVC2.dll" DESTINATION bin)
+            install(FILES  "${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll" DESTINATION bin)
+        endif()
+#       install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadGC2.dll" DESTINATION bin)
+#       install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadGC2_64.dll" DESTINATION bin)
+    endif()
+
+    if (NOT ALISTAT_FLAGS MATCHES "single" AND CLANG)
+        if (BINARY32)
+            install(FILES  "${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll" DESTINATION bin)
+        else()
+            install(FILES  "${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll" DESTINATION bin)
+        endif()
+    endif()
+
+endif()
+
 ###############################################################################
 ## packaging ##################################################################
 ###############################################################################
 
-# now comes everything we need, to create a package
-# there are a lot more variables you can set, and some
-# you need to set for some package types, but we want to
-# be minimal here
+include (InstallRequiredSystemLibraries)
+set (CPACK_RESOURCE_FILE_LICENSE
+     "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+
 set(CPACK_PACKAGE_NAME "alistat")
 set(CPACK_PACKAGE_VERSION "1.5")
 
-# we don't want to split our program up into several things
-set(CPACK_MONOLITHIC_INSTALL 1)
+if(WIN32 OR APPLE)
+  set(CPACK_GENERATOR "ZIP")
+  set(CPACK_SOURCE_GENERATOR "ZIP")
+else()
+  set(CPACK_GENERATOR "TGZ")
+  set(CPACK_SOURCE_GENERATOR "TGZ")
+endif()
 
-# This must be last
+set (SYSTEM_NAME "${CMAKE_SYSTEM_NAME}")
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    if (ALISTAT_FLAGS MATCHES "oldmac")
+        set (SYSTEM_NAME "MacOS10.5")
+    else()
+        set (SYSTEM_NAME "MacOSX")
+    endif()
+endif()
+
+if (BINARY32)
+    set (SYSTEM_NAME "${SYSTEM_NAME}32")
+endif()
+
+if (ALISTAT_FLAGS MATCHES "KNL")
+    set (SYSTEM_NAME "${SYSTEM_NAME}KNL")
+endif()
+
+set(CPACK_PACKAGE_FILE_NAME
+    "${CMAKE_PROJECT_NAME}${EXE_SUFFIX}-${CPACK_PACKAGE_VERSION}-${SYSTEM_NAME}")
+
+if (NOT APPLE)
+    set(CPACK_STRIP_FILES TRUE)
+endif()
+
 include(CPack)

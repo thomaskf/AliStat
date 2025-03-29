@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 set(GCC_MIN_VERSION "9") # minimum GCC version that is tested in CI
 
@@ -17,8 +17,6 @@ file(GLOB_RECURSE sources      src/*.cpp src/*.h)
 ###############################################################################
 
 add_executable(alistat ${sources})
-
-target_compile_options(alistat PUBLIC -std=c++1y -Wall -Wfloat-conversion)
 
 # this lets me include files relative to the root source directory with a <> pair
 target_include_directories(alistat PUBLIC src)
@@ -250,13 +248,6 @@ if (NOT ALISTAT_FLAGS MATCHES "single")
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LIBPATH:${PROJECT_SOURCE_DIR}/lib")
             set(THREAD_LIB "pthreadVC2")
         endif()
-    elseif(CLANG AND WIN32)
-        if (BINARY32)
-            target_link_libraries(alistat ${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll)
-        else()
-            target_link_libraries(alistat ${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll)
-        endif()
-#        set(THREAD_LIB "ompstatic")
     endif()
 
     if (CLANG AND BINARY32)

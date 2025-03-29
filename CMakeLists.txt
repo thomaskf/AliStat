@@ -1,4 +1,7 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_LEGACY_CYGWIN_WIN32 0)
+set(GCC_MIN_VERSION "9") # minimum GCC version that is tested in CI
+
 project(AliStat)
 
 set(CPACK_PACKAGE_VERSION "1.15")
@@ -75,9 +78,11 @@ if (__ARM_NEON)
     set(ALISTAT_FLAGS "${ALISTAT_FLAGS} novx")
 elseif (CMAKE_CXX_COMPILER MATCHES "VISUAL STUDIO")
     set(CLANG_UNDER_VS "TRUE")
-    #it won't recognize the -std=c++11 parameter.
+    #it won't recognize the -std=c++17 parameter.
     #Todo: don't hard-code this; figure out some way it can be passed in (though ideally, not the whole shebang).
     include_directories("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\Llvm\\lib\\clang\\10.0.0\\include")
+elseif(ALISTAT_FLAGS MATCHES "cpp14")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()

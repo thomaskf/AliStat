@@ -260,6 +260,28 @@ endif()
 # basic linking libraries
 target_link_libraries(alistat PUBLIC ${PLATFORM_LIB} ${STD_LIB} ${THREAD_LIB} ${ATOMIC_LIB})
 
+# setup the executable name
+##################################################################
+set_target_properties(alistat PROPERTIES OUTPUT_NAME "alistat${EXE_SUFFIX}")
+
+if (MSVC)
+    set (BINARY_DIR "${PROJECT_BINARY_DIR}/Release")
+else()
+    set (BINARY_DIR "${PROJECT_BINARY_DIR}")
+endif()
+
+if (WIN32)
+    if (MSVC)
+        if (CLANG_UNDER_VS)
+            ADD_CUSTOM_COMMAND(TARGET alistat POST_BUILD COMMAND copy "alistat${EXE_SUFFIX}.exe" "alistat${EXE_SUFFIX}-click.exe")
+        else()
+            ADD_CUSTOM_COMMAND(TARGET alistat POST_BUILD COMMAND copy "Release\\alistat${EXE_SUFFIX}.exe" "Release\\alistat${EXE_SUFFIX}-click.exe")
+        endif()
+    else()
+        ADD_CUSTOM_COMMAND(TARGET alistat POST_BUILD COMMAND copy "alistat${EXE_SUFFIX}.exe" "alistat${EXE_SUFFIX}-click.exe")
+    endif()
+endif()
+
 ##############################################################
 # add the install targets
 ##############################################################
@@ -274,23 +296,10 @@ if (WIN32)
     if (NOT ALISTAT_FLAGS MATCHES "single" AND MSVC)
         if (BINARY32)
             install(FILES  "${PROJECT_SOURCE_DIR}/lib32/pthreadVC2.dll" DESTINATION bin)
-            install(FILES  "${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll" DESTINATION bin)
         else()
             install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadVC2.dll" DESTINATION bin)
-            install(FILES  "${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll" DESTINATION bin)
-        endif()
-#       install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadGC2.dll" DESTINATION bin)
-#       install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadGC2_64.dll" DESTINATION bin)
-    endif()
-
-    if (NOT ALISTAT_FLAGS MATCHES "single" AND CLANG)
-        if (BINARY32)
-            install(FILES  "${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll" DESTINATION bin)
-        else()
-            install(FILES  "${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll" DESTINATION bin)
         endif()
     endif()
-
 endif()
 
 ###############################################################################

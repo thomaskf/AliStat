@@ -182,9 +182,9 @@ jobs:
         with:
           submodules: "recursive"
 
-      - name: Install LLVM v14
+      - name: Install LLVM
         shell: cmd
-        run: choco install llvm --version=14.0.6 --allow-downgrade
+        run: choco install llvm
               
       - name: Compile
         shell: cmd
@@ -196,8 +196,7 @@ jobs:
             -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ^
             -DCMAKE_C_FLAGS=--target=x86_64-pc-windows-gnu ^
             -DCMAKE_CXX_FLAGS=--target=x86_64-pc-windows-gnu ^
-            -DCMAKE_MAKE_PROGRAM=mingw32-make ^
-            -DIQTREE_FLAGS="cpp14" ..
+            -DCMAKE_MAKE_PROGRAM=mingw32-make ..
           make -j
 
       - name: Check File Arch

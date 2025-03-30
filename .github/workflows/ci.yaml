@@ -1,0 +1,214 @@
+name: Build
+
+on:
+  push: 
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+# If a Second Commit is Pushed After, and Build is Not Complete, Cancel
+# Extremely Important with the High Computation Time and Power Required of Arm Linux Builds
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux-x86-64:
+    name: Linux x86-64 gcc-${{ matrix.gcc-version }} cmake-${{ matrix.cmake-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Latest supported gcc and cmake versions
+          - gcc-version: 12
+            cmake-version: latest
+            upload: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: "recursive"
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -q -y
+        sudo apt-get install -q -y gcc-${{ matrix.gcc-version }} g++-${{ matrix.gcc-version}}
+    
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: ${{ matrix.cmake-version }}
+
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DALISTAT_FLAGS=static -DCMAKE_C_COMPILER=$(which gcc-${{ matrix.gcc-version }}) -DCMAKE_CXX_COMPILER=$(which g++-${{ matrix.gcc-version }})
+        make -j
+        file alistat | grep x86-64
+
+    - name: Upload Built Binary
+      # Only upload for one of the gcc & cmake tests
+      if: ${{ matrix.upload }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: Linux x86-64
+        path: build/alistat
+        if-no-files-found: error
+
+  build-linux-aarch64:
+     name: Linux aarch64
+     runs-on: ubuntu-22.04-arm
+ 
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v4
+         with:
+           submodules: "recursive"
+ 
+       - name: Install dependencies
+         run: |
+           sudo apt-get update -q -y
+           sudo apt-get install -q -y gcc g++
+    
+       - name: Build
+         run: |
+           mkdir build
+           cd build
+           cmake .. -DALISTAT_FLAGS=static
+           make -j
+           file alistat | grep aarch64
+
+       - name: Upload Built Binary
+         uses: actions/upload-artifact@v4
+         with:
+           name: Linux AArch64
+           path: build/alistat
+           if-no-files-found: error
+
+  build-macos-x86_64:
+    name: Mac OS x86-64
+    runs-on: macos-13 # Mac OS 14 Does Not Support x86-64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+  
+      - name: Install dependencies
+        run: brew install make
+  
+      - name: Build
+        run: |
+          set -x
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          gmake -j
+          file alistat | grep x86_64
+          
+      - name: Upload Built Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mac x86-64
+          path: build/iqtree3
+          if-no-files-found: error
+
+  build-macos-arm:
+    name: Mac OS ARM64
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+  
+      - name: Install dependencies
+        run: brew install make
+
+      - name: Build
+        run: |
+          set -x
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          gmake -j
+          file iqtree3 | grep arm64
+
+      - name: Upload Built Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mac Arm
+          path: build/alistat
+          if-no-files-found: error
+
+  compile-mac-universal:
+    name: Mac OS Universal
+    runs-on: macos-14
+    needs:
+      - build-macos-x86_64
+      - build-macos-arm
+    
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Mac *
+
+      - name: Combine Artifacts
+        run: lipo -create -output alistat "Mac x86-64/alistat" "Mac Arm/alistat"
+
+      - name: Check Architectures
+        run: lipo -archs alistat
+
+      - name: Upload Built Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mac Universal
+          path: alistat
+          if-no-files-found: error
+
+  build-windows-x86-64:
+    name: Windows x86-64
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - name: Install LLVM v14
+        shell: cmd
+        run: choco install llvm --version=14.0.6 --allow-downgrade
+              
+      - name: Compile
+        shell: cmd
+        run: |
+          if exist build rd /s /q build
+          mkdir build
+          cd build
+          cmake -G "MinGW Makefiles" ^
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ^
+            -DCMAKE_C_FLAGS=--target=x86_64-pc-windows-gnu ^
+            -DCMAKE_CXX_FLAGS=--target=x86_64-pc-windows-gnu ^
+            -DCMAKE_MAKE_PROGRAM=mingw32-make ^
+            -DIQTREE_FLAGS="cpp14" ..
+          make -j
+
+      - name: Check File Arch
+        shell: bash
+        run: |
+          cd build
+          file alistat.exe | grep x86-64
+
+      - name: Upload Built Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows x86-64
+          path: build/alistat.exe
+          if-no-files-found: error

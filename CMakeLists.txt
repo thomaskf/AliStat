@@ -222,6 +222,35 @@ elseif (CLANG AND NOT CLANG_UNDER_VS)
     set(CMAKE_C_FLAGS_MEM "-g -O1")
 endif()
 
+# Check if __ARM_NEON is defined
+#include(cmake_utls/check_neon_exists.cmake)
+set (__ARM_NEON "FALSE")
+set (NEON 0)
+if (APPLE)
+    execute_process(
+      COMMAND uname -m
+      RESULT_VARIABLE result
+      OUTPUT_VARIABLE OSX_NATIVE_ARCHITECTURE
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(OSX_NATIVE_ARCHITECTURE STREQUAL "arm64")
+        message("APPLE SILICON (M1/M2/M3) DETECTED!")
+        set (__ARM_NEON "TRUE")
+        set (NEON 1)
+    endif()
+elseif (UNIX AND NOT APPLE)  # Unix and Linux
+    execute_process(
+      COMMAND uname -m
+      RESULT_VARIABLE result
+      OUTPUT_VARIABLE OS_NATIVE_ARCHITECTURE
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(OS_NATIVE_ARCHITECTURE STREQUAL "aarch64")
+        message("Unix/Linux ARM64 DETECTED!")
+        set (__ARM_NEON "TRUE")
+        set (NEON 1)
+    endif()
+endif()
 
 ##################################################################
 # setup linking flags
@@ -320,10 +349,20 @@ endif()
 
 set (SYSTEM_NAME "${CMAKE_SYSTEM_NAME}")
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    if (ALISTAT_FLAGS MATCHES "oldmac")
-        set (SYSTEM_NAME "MacOS10.5")
+    if (IQTREE_FLAGS MATCHES "oldmac")
+        set (SYSTEM_NAME "macOS10.5")
+    elseif (OSX_NATIVE_ARCHITECTURE STREQUAL "arm64")
+        set (SYSTEM_NAME "macOS-arm")
     else()
-        set (SYSTEM_NAME "MacOSX")
+        set (SYSTEM_NAME "macOS-intel")
+    endif()
+endif()
+
+if (NOT APPLE AND UNIX)
+    if (__ARM_NEON)
+        set (SYSTEM_NAME "Linux-arm")
+    else()
+        set (SYSTEM_NAME "Linux-intel")
     endif()
 endif()
 

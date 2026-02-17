@@ -177,7 +177,7 @@ When the sequences are regarded as
 
 ## Contacts
 
-- Dr. Lars Jermin (Email: lars.jermiin@anu.edu.au)
+- Dr. Lars Jermiin (Email: lars.jermiin@universityofgalway.ie)
 - Dr. Thomas Wong (Email: thomas.wong@anu.edu.au)
 
 ## Citation

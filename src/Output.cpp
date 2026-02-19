@@ -886,14 +886,18 @@ void outputSquare(ofstream& fout, double x, double y, string color, int size) {
     fout << "\theight=\"" << size << "\"" << endl;
     fout << "\tx=\"" << x << "\"" << endl;
     fout << "\ty=\"" << y << "\"" << endl;
-    fout << "\tstyle=\"fill:" << color << ";fill-opacity:1;stroke:black;stroke-width:0.1;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1\" />" << endl;
+//    fout << "\tstyle=\"fill:" << color << ";fill-opacity:1;stroke:black;stroke-width:0.1;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1\" />" << endl;
+    // LS Jermiin (17 Feb 2026) - replaced the line above with the line below
+    fout << "\tstyle=\"fill:" << color << ";stroke-width:0.1;stroke:black\" />" << endl;
 }
 
 // output the sequence name
 void outputSeqName(ofstream& fout, double x, double y, int angle, string txt, string font, int fontSize, string text_align) {
     fout << "<text" << endl;
     fout << "\tx=\"" << x << "\" y=\"" << y << "\"" << endl;
-    fout << "\tstyle=\"font-size:" << fontSize << "px;font-style:normal;font-weight:normal;text-align:" << text_align << ";text-anchor:" << text_align << ";fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:" << font << "\"" << endl;
+//    fout << "\tstyle=\"font-size:" << fontSize << "px;font-style:normal;font-weight:normal;text-align:" << text_align << ";text-anchor:" << text_align << ";fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:" << font << "\"" << endl;
+    // LS Jermiin (17 Feb 2026) - replaced the line above with the four lines below
+    fout << "\tfont-family=\"monospace\"" << endl;
     if (angle > 0)
         fout << "\ttransform=\"rotate(" << angle << " " << x << " " << y << ")\"" << endl;
     fout << "\t>" << txt << "</text>" << endl;

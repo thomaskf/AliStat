@@ -96,7 +96,9 @@ using namespace std;
 static int HEATMAP_COLOR_NUM = 11;
 static string HEATMAP_COLOR_MAP1[] = {"#ef3b2c","#08306B","#08519C","#2171B5","#4292C6","#6BAED6","#9ECAE1","#C6DBEF","#DEEBF7","#F7FBFF","#FFFFFF"};
 static string HEATMAP_COLOR_MAP2[] = {"#AA0000","#FF2A2A","#FF6600","#FF9955","#FFCC00","#DDFF55","#99FF55","#66FF00","#00AA00","#005500","#002B00"};
-static string HEATMAP_COLOR_DESC[] = {"= 0.0", "&lt; 0.1", "&lt; 0.2", "&lt; 0.3", "&lt; 0.4", "&lt; 0.5", "&lt; 0.6", "&lt; 0.7", "&lt; 0.8", "&lt; 0.9", "&#x2264; 1.0"};
+// static string HEATMAP_COLOR_DESC[] = {"= 0.0", "&lt; 0.1", "&lt; 0.2", "&lt; 0.3", "&lt; 0.4", "&lt; 0.5", "&lt; 0.6", "&lt; 0.7", "&lt; 0.8", "&lt; 0.9", "&#x2264; 1.0"};
+// LS Jermiin (17 Feb 2026) - replaced the line above with the line below
+static string HEATMAP_COLOR_DESC[] = {"=0.0", ">0.0", ">0.1", ">0.2", ">0.3", ">0.4", ">0.5", ">0.6", ">0.7", ">0.8", ">0.9"};
 
 // output the usage of this program
 void outputUsage(char* progName);

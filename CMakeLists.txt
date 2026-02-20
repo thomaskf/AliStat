@@ -4,7 +4,7 @@ set(GCC_MIN_VERSION "9") # minimum GCC version that is tested in CI
 
 project(AliStat)
 
-set(CPACK_PACKAGE_VERSION "1.16")
+set(CPACK_PACKAGE_VERSION "1.17")
 
 ###############################################################################
 ## file globbing ##############################################################
